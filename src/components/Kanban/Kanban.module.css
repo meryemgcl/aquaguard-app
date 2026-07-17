@@ -1,0 +1,602 @@
+/* ============================================================
+   AquaGuard — Kanban Board Styles
+   ============================================================ */
+
+/* ── Wrapper ── */
+.boardWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: calc(100vh - var(--navbar-height) - 4rem);
+}
+
+/* ── Board Header ── */
+.boardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.boardTitleGroup {}
+
+.boardTitle {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #f0f4ff;
+  letter-spacing: -0.02em;
+}
+
+.boardSubtitle {
+  font-size: 0.82rem;
+  color: #8892a8;
+  margin-top: 0.25rem;
+}
+
+.boardStats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.statPill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  font-size: 0.78rem;
+  color: #8892a8;
+  font-weight: 500;
+}
+
+.statDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+/* ── Board Layout (horizontal scroll) ── */
+.board {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 1.5rem;
+  align-items: flex-start;
+  /* custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.board::-webkit-scrollbar { height: 6px; }
+.board::-webkit-scrollbar-track { background: transparent; }
+.board::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+}
+.board::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.18);
+}
+
+/* ── Column ── */
+.column {
+  flex: 0 0 280px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: rgba(16, 22, 42, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.column:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.columnOver {
+  border-color: var(--col-color) !important;
+  box-shadow: 0 0 0 1px var(--col-color), 0 0 30px var(--col-glow) !important;
+}
+
+/* ── Column Accent Bar ── */
+.columnAccent {
+  height: 3px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* ── Column Header ── */
+.columnHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem 0.75rem;
+}
+
+.columnHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.columnIcon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.columnTitle {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #c8d0e0;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.columnCount {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* ── Card List ── */
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem 0.75rem;
+  min-height: 80px;
+  flex: 1;
+  transition: background 0.2s ease;
+  border-radius: 0 0 16px 16px;
+}
+
+.cardListOver {
+  background: var(--col-glow);
+}
+
+/* ── Empty Column ── */
+.emptyCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 2rem 1rem;
+  border: 2px dashed rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.emptyIcon {
+  font-size: 1.5rem;
+  opacity: 0.6;
+}
+
+.emptyCol p {
+  font-size: 0.8rem;
+  color: #555f75;
+  font-weight: 500;
+}
+
+.emptyHint {
+  font-size: 0.72rem !important;
+  opacity: 0.6;
+}
+
+/* ============================================================
+   Card Styles
+   ============================================================ */
+
+.card {
+  position: relative;
+  background: rgba(22, 29, 52, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  transition: all 0.2s ease;
+  user-select: none;
+  will-change: transform;
+}
+
+.card:hover {
+  background: rgba(26, 34, 60, 0.9);
+  border-color: rgba(255, 255, 255, 0.13);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.cardDragging {
+  transform: rotate(2deg) scale(1.03);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(0, 212, 255, 0.15);
+  border-color: rgba(0, 212, 255, 0.3);
+  background: rgba(26, 34, 60, 0.97);
+  z-index: 100;
+}
+
+.cardMoving {
+  opacity: 0.6;
+  animation: cardPulse 0.8s ease infinite;
+}
+
+@keyframes cardPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.9; }
+}
+
+.movingPulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  animation: pulseBorder 0.8s ease infinite;
+  pointer-events: none;
+}
+
+@keyframes pulseBorder {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ── Card Top Row ── */
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.riskBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: 1px solid;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.riskDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.riskScore {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* ── Risk Progress Bar ── */
+.riskBarWrapper {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.riskBar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+/* ── Card Title ── */
+.cardTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e8eeff;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Card Location ── */
+.cardLocation {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: #555f75;
+}
+
+.cardLocation svg {
+  color: #00d4ff;
+  flex-shrink: 0;
+}
+
+/* ── Tags ── */
+.cardTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.tag {
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  background: rgba(110, 142, 251, 0.08);
+  border: 1px solid rgba(110, 142, 251, 0.15);
+  border-radius: 6px;
+  color: #6e8efb;
+  font-weight: 500;
+}
+
+/* ── Card Footer ── */
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.1rem;
+}
+
+.cardDate {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  color: #555f75;
+}
+
+.cardDate svg {
+  color: #8892a8;
+  flex-shrink: 0;
+}
+
+.assigneeAvatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  cursor: default;
+  transition: transform 0.2s ease;
+}
+
+.assigneeAvatar:hover {
+  transform: scale(1.15);
+}
+
+/* ── Loading State ── */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 400px;
+  color: #8892a8;
+  font-size: 0.9rem;
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.06);
+  border-top-color: #00d4ff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .board {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+  .column {
+    flex: none;
+    min-width: 100%;
+    width: 100%;
+  }
+  .boardHeader {
+    flex-direction: column;
+  }
+}
+
+/* ============================================================
+   Approval System Additions
+   ============================================================ */
+
+/* ── Actionable card (has approval buttons) ── */
+.cardActionable {
+  border-color: rgba(0, 212, 255, 0.1) !important;
+}
+
+.cardActionable:hover {
+  border-color: rgba(0, 212, 255, 0.2) !important;
+}
+
+/* ── Detail button (ℹ) ── */
+.detailBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #555f75;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.detailBtn:hover {
+  background: rgba(0,212,255,0.1);
+  border-color: rgba(0,212,255,0.25);
+  color: #00d4ff;
+}
+
+/* ── Approval history indicator ── */
+.approvalIndicator {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.approvalDotGreen {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00ff88;
+  box-shadow: 0 0 5px rgba(0,255,136,0.6);
+  flex-shrink: 0;
+}
+
+.approvalDotRed {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff4444;
+  box-shadow: 0 0 5px rgba(255,68,68,0.6);
+  flex-shrink: 0;
+}
+
+.approvalCount {
+  font-size: 0.65rem;
+  color: #555f75;
+  font-weight: 500;
+}
+
+/* ── Approval action buttons row ── */
+.approvalActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.rejectBtn, .approveBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.42rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  border: 1px solid;
+  letter-spacing: 0.02em;
+}
+
+.rejectBtn {
+  background: rgba(255,68,68,0.08);
+  border-color: rgba(255,68,68,0.2);
+  color: #ff6b6b;
+}
+
+.rejectBtn:hover:not(:disabled) {
+  background: rgba(255,68,68,0.18);
+  border-color: rgba(255,68,68,0.4);
+  color: #ff4444;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255,68,68,0.2);
+}
+
+.approveBtn {
+  background: rgba(0,255,136,0.08);
+  border-color: rgba(0,255,136,0.2);
+  color: #00ff88;
+}
+
+.approveBtn:hover:not(:disabled) {
+  background: rgba(0,255,136,0.18);
+  border-color: rgba(0,255,136,0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,255,136,0.2);
+}
+
+.rejectBtn:disabled,
+.approveBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Mini spinner (inside buttons) ── */
+.miniSpinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.55s linear infinite;
+}
+
+/* ── Toast Notification ── */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  max-width: 380px;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.toastSuccess {
+  background: rgba(0,255,136,0.1);
+  border-color: rgba(0,255,136,0.25);
+  color: #00ff88;
+}
+
+.toastError {
+  background: rgba(255,68,68,0.1);
+  border-color: rgba(255,68,68,0.25);
+  color: #ff6b6b;
+}
+

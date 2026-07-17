@@ -1,0 +1,197 @@
+/* ============================================================
+   Sidebar — Module Styles
+   ============================================================ */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: rgba(17, 24, 39, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: var(--z-sidebar);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ── Logo Area ── */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+  flex-shrink: 0;
+}
+
+.logoIcon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.4));
+}
+
+.logoText {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #00d4ff, #6e8efb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Navigation ── */
+.nav {
+  flex: 1;
+  padding: var(--space-sm) var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sectionHeader {
+  padding: var(--space-md) var(--space-sm) var(--space-xs);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.sectionHeader:first-child {
+  padding-top: var(--space-sm);
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+  position: relative;
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+}
+
+.navItem:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.navItem:hover .navIcon {
+  color: var(--accent);
+}
+
+.navItemActive {
+  background: var(--accent-glow);
+  color: var(--text-primary);
+  font-weight: 500;
+  border-left-color: var(--accent);
+}
+
+.navItemActive .navIcon {
+  color: var(--accent);
+}
+
+.navIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: color var(--transition-base);
+}
+
+.navLabel {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #0a0f1e;
+  background: var(--accent);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.navBadgeWarning {
+  background: var(--warning);
+}
+
+.navBadgeDanger {
+  background: var(--danger);
+  color: #fff;
+}
+
+/* ── Divider ── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: var(--space-xs) var(--space-sm);
+}
+
+/* ── User Section ── */
+.userSection {
+  flex-shrink: 0;
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.userAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d4ff, #6e8efb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0a0f1e;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.25);
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.userName {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userRole {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
