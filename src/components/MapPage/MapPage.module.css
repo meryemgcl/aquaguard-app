@@ -1,0 +1,145 @@
+/* ============================================================
+   AquaGuard — Map Page Styles
+   ============================================================ */
+
+.page {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr 280px;
+  gap: 1rem;
+  height: calc(100vh - var(--navbar-height) - 3rem);
+  min-height: 0;
+}
+
+.pageHeader {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pageTitle {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #f0f4ff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pageSubtitle { font-size: 0.82rem; color: #8892a8; margin-top: 0.2rem; }
+
+.filterBar { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+
+.filterBtn {
+  display: flex; align-items: center; gap: 0.35rem;
+  padding: 0.4rem 0.8rem; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03);
+  color: #8892a8; font-size: 0.78rem; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: all 0.2s;
+}
+.filterBtn:hover { border-color: rgba(255,255,255,0.14); color: #c8d0e0; }
+.filterActive { background: rgba(0,212,255,0.08); border-color: rgba(0,212,255,0.25); color: #00d4ff; }
+
+.filterCount {
+  font-size: 0.65rem; font-weight: 700;
+  background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 10px;
+}
+
+.mapContainer {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(13,18,37,0.8);
+  min-height: 0;
+}
+
+.mapLoading {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8892a8;
+  font-size: 0.9rem;
+}
+
+/* ── Side panel ── */
+.sidePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.08) transparent;
+}
+
+.markerCard {
+  padding: 0.85rem;
+  background: rgba(16,22,42,0.6);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: all 0.2s;
+}
+
+.markerCard:hover {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(22,29,52,0.8);
+}
+
+.markerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.markerLoc {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #c8d0e0;
+  line-height: 1.3;
+}
+
+.markerScore {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 8px;
+  border: 1px solid;
+  flex-shrink: 0;
+}
+
+.markerParams {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: #8892a8;
+}
+
+.markerDate {
+  font-size: 0.68rem;
+  color: #555f75;
+  margin-top: 2px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 350px auto;
+  }
+  .sidePanel {
+    max-height: 200px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    overflow-x: auto;
+  }
+  .markerCard { min-width: 220px; }
+}

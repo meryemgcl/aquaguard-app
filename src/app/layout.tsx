@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="tr" className={inter.variable}>
+    <html lang="tr" className={inter.variable} suppressHydrationWarning data-scroll-behavior="smooth">
       <body className={inter.className}>
         <AuthProvider>
           <AppShell>{children}</AppShell>

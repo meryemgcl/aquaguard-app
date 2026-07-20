@@ -1,0 +1,425 @@
+/* ============================================================
+   AquaGuard — Dashboard Styles
+   ============================================================ */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 400px;
+  color: #8892a8;
+}
+
+.loadingSpinner {
+  width: 40px; height: 40px;
+  border: 3px solid rgba(255,255,255,0.06);
+  border-top-color: #00d4ff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Stats Grid ── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.statCard {
+  position: relative;
+  background: rgba(16,22,42,0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.statCard::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: 16px 16px 0 0;
+}
+
+.statAccent::before { background: linear-gradient(90deg, #00d4ff, transparent); }
+.statWarning::before { background: linear-gradient(90deg, #f59e0b, transparent); }
+.statRisk::before { background: linear-gradient(90deg, #ff4444, transparent); }
+.statInfo::before { background: linear-gradient(90deg, #6e8efb, transparent); }
+
+.statCard:hover {
+  border-color: rgba(255,255,255,0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.statHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.statIcon {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.statTrend {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.trendUp {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #00ff88;
+}
+
+.badgeWarning {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(245,158,11,0.12);
+  border: 1px solid rgba(245,158,11,0.3);
+  color: #f59e0b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badgeSuccess {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(0,255,136,0.1);
+  border: 1px solid rgba(0,255,136,0.3);
+  color: #00ff88;
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #f0f4ff;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.78rem;
+  color: #8892a8;
+  font-weight: 500;
+}
+
+.statBar {
+  height: 3px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: auto;
+}
+
+.statBarFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.8s ease;
+}
+
+/* ── Map Section ── */
+.mapSection {
+  background: rgba(16,22,42,0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sectionTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f0f4ff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sectionBadge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #8892a8;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.viewAllBtn {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #00d4ff;
+  text-decoration: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.viewAllBtn:hover {
+  background: rgba(0,212,255,0.08);
+}
+
+.mapWrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.mapLoading {
+  height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13,18,37,0.8);
+  border-radius: 12px;
+  color: #8892a8;
+  font-size: 0.9rem;
+}
+
+.mapLegend {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  justify-content: center;
+  padding-top: 0.25rem;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: #8892a8;
+}
+
+.legendDot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Charts Grid ── */
+.chartsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+.chartCard {
+  background: rgba(16,22,42,0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.chartHeader {
+  padding: 1rem 1.25rem 0.5rem;
+}
+
+.chartHeader h3 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f0f4ff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chartBody {
+  padding: 0 0.75rem 0.75rem;
+  flex: 1;
+}
+
+/* Chart tooltip */
+.chartTooltip {
+  background: rgba(15,20,40,0.95);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.tooltipLabel {
+  font-size: 0.72rem;
+  color: #8892a8;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #e8eeff;
+}
+
+.tooltipRow strong { color: #f0f4ff; }
+
+.tooltipDot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Pie legend */
+.pieLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+  padding-right: 0.5rem;
+}
+
+.pieLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.75rem;
+}
+
+.pieLegendDot {
+  width: 8px; height: 8px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.pieLegendLabel {
+  color: #c8d0e0;
+  flex: 1;
+}
+
+.pieLegendValue {
+  font-weight: 700;
+  color: #f0f4ff;
+}
+
+/* ── Activity Section ── */
+.activitySection {
+  background: rgba(16,22,42,0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 1.25rem;
+}
+
+.activitySection .sectionTitle { margin-bottom: 1rem; }
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.activityItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.activityItem:last-child { border-bottom: none; }
+
+.activityDot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.activityContent {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.activityText {
+  font-size: 0.82rem;
+  color: #c8d0e0;
+  line-height: 1.4;
+}
+
+.activityText strong { font-weight: 600; }
+
+.activityTime {
+  font-size: 0.7rem;
+  color: #555f75;
+}
+
+/* ── Leaflet overrides for dark popups ── */
+:global(.leaflet-popup-content-wrapper) {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 10px !important;
+  padding: 0 !important;
+}
+
+:global(.leaflet-popup-content) {
+  margin: 0 !important;
+}
+
+:global(.leaflet-popup-tip) {
+  background: #111827 !important;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1200px) {
+  .chartsGrid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 900px) {
+  .statsGrid { grid-template-columns: repeat(2, 1fr); }
+  .chartsGrid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .statsGrid { grid-template-columns: 1fr; }
+  .mapLegend { flex-wrap: wrap; gap: 0.6rem; }
+}

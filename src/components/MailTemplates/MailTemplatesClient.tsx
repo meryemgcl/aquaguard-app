@@ -335,7 +335,7 @@ export default function MailTemplatesClient() {
                   <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>
                       Konu Satırı
-                      <span className={styles.fieldHint}>{{değişkenler}} kullanabilirsiniz</span>
+                      <span className={styles.fieldHint}>{'{{'}değişkenler{'}}'}  kullanabilirsiniz</span>
                     </label>
                     <input
                       className={styles.subjectInput}
