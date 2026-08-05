@@ -100,3 +100,33 @@ export function toSafeUser(user: User): SafeUser {
     createdAt: user.createdAt,
   };
 }
+
+export async function deleteUser(id: string): Promise<boolean> {
+  await seedUsers();
+  const index = users.findIndex(u => u.id === id);
+  if (index === -1) return false;
+  users.splice(index, 1);
+  return true;
+}
+
+export async function updateUserRole(id: string, role: User['role']): Promise<SafeUser | null> {
+  await seedUsers();
+  const user = users.find(u => u.id === id);
+  if (!user) return null;
+  user.role = role;
+  return toSafeUser(user);
+}
+
+export async function updateUser(id: string, data: { name?: string; password?: string }): Promise<SafeUser | null> {
+  await seedUsers();
+  const user = users.find(u => u.id === id);
+  if (!user) return null;
+  
+  if (data.name) user.name = data.name;
+  if (data.password) {
+    user.passwordHash = await hashPassword(data.password);
+  }
+  
+  return toSafeUser(user);
+}
+

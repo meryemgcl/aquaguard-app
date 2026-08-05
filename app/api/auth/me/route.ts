@@ -1,11 +1,12 @@
 /* ============================================================
    GET /api/auth/me — Get current user from token
    POST /api/auth/me — Logout (clear cookie)
+   PUT /api/auth/me — Update user profile
    ============================================================ */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
-import { findUserById, toSafeUser } from '@/lib/users';
+import { verifyToken, createToken } from '@/lib/auth';
+import { findUserById, updateUser, toSafeUser } from '@/lib/users';
 
 export async function GET(request: NextRequest) {
   try {
@@ -62,4 +63,42 @@ export async function POST() {
   });
 
   return response;
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const token = request.cookies.get('token')?.value;
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const payload = verifyToken(token);
+    if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+
+    const { name, password } = await request.json();
+
+    const updated = await updateUser(payload.userId, { name, password });
+    if (!updated) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const response = NextResponse.json({ success: true, user: updated });
+    
+    if (name || password) {
+      const newToken = createToken({
+        userId: updated.id,
+        email: updated.email,
+        role: updated.role
+      });
+      response.cookies.set({
+        name: 'token',
+        value: newToken,
+        httpOnly: true,
+        path: '/',
+        maxAge: 60 * 60 * 24, // 1 day
+      });
+    }
+
+    return response;
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
