@@ -1,0 +1,196 @@
+.profilePage {
+  padding: 2rem 3rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: calc(100vh - 64px);
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.avatar::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 26px;
+  background: inherit;
+  filter: blur(8px);
+  opacity: 0.5;
+  z-index: -1;
+}
+
+.headerInfo h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.headerInfo p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.roleBadge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid;
+}
+
+/* Dashboard Grid */
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mainColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sideColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Sections */
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Task List */
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.taskCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  transition: all 0.2s;
+}
+
+.taskCard:hover {
+  border-color: rgba(255,255,255,0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.taskInfo h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.taskMeta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.taskStatus {
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(255,255,255,0.05);
+  color: var(--text-secondary);
+}
+
+/* Stats Cards */
+.statCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.statIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
