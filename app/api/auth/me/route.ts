@@ -86,7 +86,8 @@ export async function PUT(request: NextRequest) {
       const newToken = createToken({
         userId: updated.id,
         email: updated.email,
-        role: updated.role
+        role: updated.role,
+        name: updated.name
       });
       response.cookies.set({
         name: 'token',

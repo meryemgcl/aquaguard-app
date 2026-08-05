@@ -139,7 +139,7 @@ export default function ArchivePage() {
                   <td>
                     <button 
                       className={styles.detailsBtn}
-                      onClick={() => alert(`Yapay Zeka Özeti:\n\n${t.aiSummary}\n\nBu raporun detayları daha sonraki sürümlerde geliştirilmiş bir Modal üzerinden gösterilecektir.`)}
+                      onClick={() => alert(`Rapor Detayı:\n\n${t.description}\n\nBu raporun detayları daha sonraki sürümlerde geliştirilmiş bir Modal üzerinden gösterilecektir.`)}
                     >
                       Özeti Gör
                     </button>
