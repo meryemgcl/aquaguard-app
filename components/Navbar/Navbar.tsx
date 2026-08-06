@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider/AuthProvider';
 import { ROLE_LABELS, ROLE_COLORS } from '@/lib/types';
+import { geocodeLocation, riskScoreToColor } from '@/lib/geocode';
 import { toast } from 'sonner';
 import styles from './Navbar.module.css';
 
@@ -67,15 +68,38 @@ function NewReportModal({ onClose }: NewReportModalProps) {
       });
       const data = await res.json();
       if (res.ok) {
-        // Sync to localStorage so it appears on Kanban page without needing DB
+        const card = data.card;
+
+        // 1. Sync card to localStorage Kanban board
         const stored = localStorage.getItem('aquaguard_kanban_cards');
         if (stored) {
           const cards = JSON.parse(stored);
-          cards.push(data.card);
+          cards.push(card);
           localStorage.setItem('aquaguard_kanban_cards', JSON.stringify(cards));
         }
 
-        toast.success('Rapor başarıyla oluşturuldu!', { description: 'Kanban panosuna "Yeni Rapor" olarak eklendi.' });
+        // 2. Geocode location → save as map marker to localStorage
+        const coords = geocodeLocation(form.location);
+        const { riskLevel, riskColor } = riskScoreToColor(card.riskScore);
+        const newMarker = {
+          id: `report-${card.id}`,
+          location: form.location,
+          lat: coords.lat,
+          lng: coords.lng,
+          riskScore: card.riskScore,
+          riskLevel,
+          riskColor,
+          lastMeasurement: new Date().toISOString().split('T')[0],
+          params: { ph: 7.0, turbidity: 5, dissolvedO2: 6, temperature: 20 },
+          isUserReport: true,
+          reportTitle: form.title,
+        };
+        const storedMarkers = localStorage.getItem('aquaguard_report_markers');
+        const existingMarkers = storedMarkers ? JSON.parse(storedMarkers) : [];
+        existingMarkers.push(newMarker);
+        localStorage.setItem('aquaguard_report_markers', JSON.stringify(existingMarkers));
+
+        toast.success('Rapor başarıyla oluşturuldu!', { description: 'Kanban panosuna ve haritaya eklendi.' });
         onClose();
         router.push('/kanban');
       } else {

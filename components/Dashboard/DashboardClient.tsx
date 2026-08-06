@@ -55,7 +55,17 @@ export default function DashboardClient() {
   useEffect(() => {
     fetch('/api/dashboard')
       .then(r => r.json())
-      .then(d => { if (d.success) setData(d.data); })
+      .then(d => {
+        if (d.success) {
+          // Merge API markers with user-submitted report markers from localStorage
+          const stored = typeof window !== 'undefined'
+            ? localStorage.getItem('aquaguard_report_markers')
+            : null;
+          const reportMarkers = stored ? JSON.parse(stored) : [];
+          const merged = { ...d.data, markers: [...d.data.markers, ...reportMarkers] };
+          setData(merged);
+        }
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);

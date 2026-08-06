@@ -21,7 +21,15 @@ export default function MapPageClient() {
   useEffect(() => {
     fetch('/api/dashboard')
       .then(r => r.json())
-      .then(d => { if (d.success) setMarkers(d.data.markers); })
+      .then(d => {
+        if (d.success) {
+          const apiMarkers: MapMarker[] = d.data.markers;
+          // Merge with user-submitted report markers from localStorage
+          const stored = localStorage.getItem('aquaguard_report_markers');
+          const reportMarkers: MapMarker[] = stored ? JSON.parse(stored) : [];
+          setMarkers([...apiMarkers, ...reportMarkers]);
+        }
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -74,11 +82,18 @@ export default function MapPageClient() {
         {filtered.map(m => (
           <div key={m.id} className={styles.markerCard}>
             <div className={styles.markerTop}>
-              <span className={styles.markerLoc}>📍 {m.location}</span>
+              <span className={styles.markerLoc}>
+                {(m as any).isUserReport ? '🆕 ' : '📍 '}{m.location}
+              </span>
               <span className={styles.markerScore} style={{ color: m.riskColor, borderColor: `${m.riskColor}44`, background: `${m.riskColor}12` }}>
                 {m.riskScore}
               </span>
             </div>
+            {(m as any).reportTitle && (
+              <div style={{ fontSize: '11px', color: '#8892a8', marginBottom: '6px', fontStyle: 'italic' }}>
+                📋 {(m as any).reportTitle}
+              </div>
+            )}
             <div className={styles.markerParams}>
               <span>🧪 pH: {m.params.ph}</span>
               <span>💨 O₂: {m.params.dissolvedO2}</span>
