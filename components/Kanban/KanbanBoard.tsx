@@ -34,12 +34,24 @@ export default function KanbanBoard() {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
-  /* ── Fetch cards ── */
+  /* ── Fetch and Persist cards ── */
   const fetchCards = useCallback(async () => {
     try {
+      // 1. Check local storage first
+      const stored = localStorage.getItem('aquaguard_kanban_cards');
+      if (stored) {
+        setCards(JSON.parse(stored));
+        setLoading(false);
+        return;
+      }
+
+      // 2. Fallback to API if first time
       const res = await fetch('/api/kanban');
       const data = await res.json();
-      if (data.success) setCards(data.cards);
+      if (data.success) {
+        setCards(data.cards);
+        localStorage.setItem('aquaguard_kanban_cards', JSON.stringify(data.cards));
+      }
     } catch {
       showToast('Kartlar yüklenemedi.', 'error');
     } finally {
@@ -48,6 +60,13 @@ export default function KanbanBoard() {
   }, [showToast]);
 
   useEffect(() => { fetchCards(); }, [fetchCards]);
+
+  // Sync cards to localStorage whenever they change
+  useEffect(() => {
+    if (cards.length > 0) {
+      localStorage.setItem('aquaguard_kanban_cards', JSON.stringify(cards));
+    }
+  }, [cards]);
 
   /* ── DnD sensors ── */
   const sensors = useSensors(

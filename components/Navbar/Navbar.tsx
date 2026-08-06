@@ -67,6 +67,14 @@ function NewReportModal({ onClose }: NewReportModalProps) {
       });
       const data = await res.json();
       if (res.ok) {
+        // Sync to localStorage so it appears on Kanban page without needing DB
+        const stored = localStorage.getItem('aquaguard_kanban_cards');
+        if (stored) {
+          const cards = JSON.parse(stored);
+          cards.push(data.card);
+          localStorage.setItem('aquaguard_kanban_cards', JSON.stringify(cards));
+        }
+
         toast.success('Rapor başarıyla oluşturuldu!', { description: 'Kanban panosuna "Yeni Rapor" olarak eklendi.' });
         onClose();
         router.push('/kanban');
