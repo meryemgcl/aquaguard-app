@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCards, scoreToLevel } from '@/lib/kanban';
 import type { KanbanCard } from '@/lib/kanban';
 
+export const dynamic = 'force-dynamic';
+
 // In-memory store reference (same as kanban.ts)
 // We import addCard from kanban module
 const riskScoreMap: Record<string, number> = {
