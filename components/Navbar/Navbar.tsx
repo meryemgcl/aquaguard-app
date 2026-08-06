@@ -71,33 +71,36 @@ function NewReportModal({ onClose }: NewReportModalProps) {
         const card = data.card;
 
         // 1. Sync card to localStorage Kanban board
-        const stored = localStorage.getItem('aquaguard_kanban_cards');
-        if (stored) {
-          const cards = JSON.parse(stored);
-          cards.push(card);
-          localStorage.setItem('aquaguard_kanban_cards', JSON.stringify(cards));
-        }
+        try {
+          const stored = localStorage.getItem('aquaguard_kanban_cards');
+          const existingCards = stored ? JSON.parse(stored) : [];
+          existingCards.push(card);
+          localStorage.setItem('aquaguard_kanban_cards', JSON.stringify(existingCards));
+        } catch { /* kanban sync hatası — devam et */ }
 
-        // 2. Geocode location → save as map marker to localStorage
-        const coords = geocodeLocation(form.location);
-        const { riskLevel, riskColor } = riskScoreToColor(card.riskScore);
-        const newMarker = {
-          id: `report-${card.id}`,
-          location: form.location,
-          lat: coords.lat,
-          lng: coords.lng,
-          riskScore: card.riskScore,
-          riskLevel,
-          riskColor,
-          lastMeasurement: new Date().toISOString().split('T')[0],
-          params: { ph: 7.0, turbidity: 5, dissolvedO2: 6, temperature: 20 },
-          isUserReport: true,
-          reportTitle: form.title,
-        };
-        const storedMarkers = localStorage.getItem('aquaguard_report_markers');
-        const existingMarkers = storedMarkers ? JSON.parse(storedMarkers) : [];
-        existingMarkers.push(newMarker);
-        localStorage.setItem('aquaguard_report_markers', JSON.stringify(existingMarkers));
+        // 2. Geocode location → harita marker'ı olarak localStorage'a kaydet
+        try {
+          const coords = geocodeLocation(form.location);
+          const riskScore = card?.riskScore ?? 40;
+          const { riskLevel, riskColor } = riskScoreToColor(riskScore);
+          const newMarker = {
+            id: `report-${card?.id ?? Date.now()}`,
+            location: form.location,
+            lat: coords.lat,
+            lng: coords.lng,
+            riskScore,
+            riskLevel,
+            riskColor,
+            lastMeasurement: new Date().toISOString().split('T')[0],
+            params: { ph: 7.0, turbidity: 5, dissolvedO2: 6, temperature: 20 },
+            isUserReport: true,
+            reportTitle: form.title,
+          };
+          const storedMarkers = localStorage.getItem('aquaguard_report_markers');
+          const existingMarkers = storedMarkers ? JSON.parse(storedMarkers) : [];
+          existingMarkers.push(newMarker);
+          localStorage.setItem('aquaguard_report_markers', JSON.stringify(existingMarkers));
+        } catch { /* geocode hatası — devam et */ }
 
         toast.success('Rapor başarıyla oluşturuldu!', { description: 'Kanban panosuna ve haritaya eklendi.' });
         onClose();
