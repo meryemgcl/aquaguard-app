@@ -48,6 +48,7 @@ export interface KanbanCard {
   };
   tags: string[];
   description: string;
+  measurements?: { ph: number; turbidity: number; dissolvedO2: number; temperature: number };
   approvals: ApprovalRecord[];
 }
 
@@ -103,6 +104,7 @@ const cards: KanbanCard[] = [
     assignee: { name: 'Ayşe Yılmaz', role: 'uzman', initials: 'AY', color: '#6e8efb' },
     tags: ['pH', 'nehir', 'acil'],
     description: 'pH seviyesi 4.2\'ye düştü, normal aralık 6.5-8.5.',
+    measurements: { ph: 4.2, turbidity: 8.5, dissolvedO2: 6.1, temperature: 18.2 },
     approvals: [],
   },
   {
@@ -113,6 +115,7 @@ const cards: KanbanCard[] = [
     assignee: { name: 'Mehmet Demir', role: 'yonetici', initials: 'MD', color: '#00ff88' },
     tags: ['oksijen', 'göl', 'kritik'],
     description: 'Çözünmüş oksijen 2 mg/L altına indi.',
+    measurements: { ph: 7.2, turbidity: 12.0, dissolvedO2: 1.8, temperature: 22.5 },
     approvals: [],
   },
   {

@@ -821,3 +821,55 @@ body::before {
   pointer-events: none;
   z-index: -1;
 }
+
+/* ============================================================
+   15. Light Theme
+   ============================================================ */
+.light-theme {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-surface: #f1f5f9;
+  --bg-input: #ffffff;
+
+  --accent: #0284c7;
+  --accent-dark: #0369a1;
+  --accent-glow: rgba(2, 132, 199, 0.15);
+  --accent-glow-strong: rgba(2, 132, 199, 0.35);
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-accent: #0284c7;
+
+  --border: rgba(15, 23, 42, 0.1);
+  --border-hover: rgba(2, 132, 199, 0.3);
+  --border-subtle: rgba(15, 23, 42, 0.05);
+}
+
+.light-theme .glass {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border);
+}
+
+.light-theme .glass-strong {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* ============================================================
+   16. Print Styles
+   ============================================================ */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+

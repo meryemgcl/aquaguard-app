@@ -58,11 +58,24 @@ export default function CardDetailModal({ card, onClose }: Props) {
             </div>
             <h2 className={styles.detailTitle}>{card.title}</h2>
           </div>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Kapat">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button 
+              className="no-print"
+              onClick={() => window.print()}
+              style={{
+                background: 'var(--accent)', color: '#fff', border: 'none',
+                padding: '6px 12px', borderRadius: '8px', cursor: 'pointer',
+                fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center'
+              }}
+            >
+              📄 PDF
+            </button>
+            <button className={`${styles.closeBtn} no-print`} onClick={onClose} aria-label="Kapat">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Scrollable content */}
@@ -105,6 +118,38 @@ export default function CardDetailModal({ card, onClose }: Props) {
 
           {/* Description */}
           <div className={styles.descSection}>{card.description}</div>
+
+          {/* Measurements and Educational Tooltips */}
+          {card.measurements && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: '6px' }}>
+                Ölçüm Değerleri (AI ve Sensör)
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>PH DEĞERİ</div>
+                  <div style={{ fontSize: '20px', fontWeight: 700, margin: '4px 0', color: 'var(--text-primary)' }}>{card.measurements.ph}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    <strong>İdeal:</strong> 6.5 - 8.5 <br/>Sınır aşımı asiditeyi artırır, canlıları tehdit eder.
+                  </div>
+                </div>
+                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>BULANIKLIK</div>
+                  <div style={{ fontSize: '20px', fontWeight: 700, margin: '4px 0', color: 'var(--text-primary)' }}>{card.measurements.turbidity} NTU</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    <strong>İdeal:</strong> &lt; 5 NTU <br/>Berraklık düşerse bitki fotosentezi durur.
+                  </div>
+                </div>
+                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>ÇÖZÜNMÜŞ O₂</div>
+                  <div style={{ fontSize: '20px', fontWeight: 700, margin: '4px 0', color: 'var(--text-primary)' }}>{card.measurements.dissolvedO2} mg/L</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    <strong>İdeal:</strong> &gt; 5 mg/L <br/>Oksijen eksikliği toplu balık ölümlerine yol açar.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Approval Timeline */}
           <div className={styles.timelineSection}>

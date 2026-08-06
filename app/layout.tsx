@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   keywords: ['su kalitesi', 'izleme', 'rapor', 'AquaGuard', 'çevre'],
 };
 
+import { ThemeProvider } from '@/components/ThemeProvider/ThemeProvider';
+
 export default function RootLayout({
   children,
 }: {
@@ -30,10 +32,12 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body className={inter.className}>
-        <AuthProvider>
-          <AppShell>{children}</AppShell>
-        </AuthProvider>
-        <Toaster richColors position="top-right" />
+        <ThemeProvider>
+          <AuthProvider>
+            <AppShell>{children}</AppShell>
+          </AuthProvider>
+          <Toaster richColors position="top-right" />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider/AuthProvider';
 import { KanbanCard } from '@/lib/kanban';
+import ReportModal from '@/components/ReportModal/ReportModal';
 import styles from './page.module.css';
 
 export default function ArchivePage() {
@@ -17,6 +18,9 @@ export default function ArchivePage() {
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Modal State
+  const [selectedReport, setSelectedReport] = useState<KanbanCard | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -139,7 +143,7 @@ export default function ArchivePage() {
                   <td>
                     <button 
                       className={styles.detailsBtn}
-                      onClick={() => alert(`Rapor Detayı:\n\n${t.description}\n\nBu raporun detayları daha sonraki sürümlerde geliştirilmiş bir Modal üzerinden gösterilecektir.`)}
+                      onClick={() => setSelectedReport(t)}
                     >
                       Özeti Gör
                     </button>
@@ -150,6 +154,13 @@ export default function ArchivePage() {
           </table>
         )}
       </div>
+
+      {/* Render Modal if a report is selected */}
+      <ReportModal 
+        isOpen={selectedReport !== null} 
+        onClose={() => setSelectedReport(null)} 
+        report={selectedReport} 
+      />
     </div>
   );
 }

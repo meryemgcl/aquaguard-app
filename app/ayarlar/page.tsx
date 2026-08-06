@@ -2,11 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/components/AuthProvider/AuthProvider';
+import { useTheme } from '@/components/ThemeProvider/ThemeProvider';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 
 export default function SettingsPage() {
   const { user, login, loading: authLoading } = useAuth(); // We'll mock login as refresh
+  const { theme, toggleTheme } = useTheme();
   const router = useRouter();
 
   const [name, setName] = useState('');
@@ -17,7 +19,6 @@ export default function SettingsPage() {
 
   // Mock preferences
   const [emailNotifs, setEmailNotifs] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
 
   useEffect(() => {
     if (!authLoading) {
@@ -144,7 +145,7 @@ export default function SettingsPage() {
             <span className={styles.toggleDesc}>Sistem arayüzünü karanlık modda kullanın.</span>
           </div>
           <label className={styles.toggleSwitch}>
-            <input type="checkbox" checked={darkMode} onChange={e => setDarkMode(e.target.checked)} disabled />
+            <input type="checkbox" checked={theme === 'dark'} onChange={() => toggleTheme()} />
             <span className={styles.slider}></span>
           </label>
         </div>
