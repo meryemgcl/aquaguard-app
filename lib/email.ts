@@ -176,3 +176,44 @@ export async function sendCriticalAlertMail(to: string, location: string, parame
   `
   return sendMail(to, `🚨 [AquaGuard] KRİTİK UYARI: ${location} — ${parameter}`, template('Kritik Su Kalitesi Uyarısı', '#ff4444', '🚨', body))
 }
+
+/* ══════════════════════════════════════════════════════════════
+   6. VATANDAŞ BİLDİRİMİ — Rapor Onaylandı / Reddedildi
+   ══════════════════════════════════════════════════════════════ */
+export async function sendCitizenNotificationMail(
+  to: string,
+  title: string,
+  location: string,
+  status: 'approved' | 'rejected',
+  reason?: string
+) {
+  const isApproved = status === 'approved'
+  const subject = isApproved
+    ? `Raporunuz Onaylandı ve Haritaya Eklendi 🎉`
+    : `Raporunuz Hakkında Bilgilendirme`
+  const color = isApproved ? '#00ff88' : '#ff4444'
+  const icon = isApproved ? '✅' : '⚠️'
+
+  const body = `
+    ${infoText('Merhaba,')}
+    ${infoText(`AquaGuard platformuna gönderdiğiniz <strong>${title}</strong> başlıklı kirlilik ihbarınız yetkili uzmanlarımız tarafından incelenmiştir.`)}
+
+    <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);padding:16px;border-radius:12px;margin:24px 0;">
+      ${boldRow('Rapor Başlığı:', title)}
+      ${boldRow('Konum:', location)}
+      ${boldRow('Durum:', isApproved ? '✅ Onaylandı ve Yayında' : '❌ Reddedildi', color)}
+    </div>
+
+    ${isApproved
+      ? infoText('Duyarlılığınız için teşekkür ederiz! İhbarınız resmi haritamıza işlenmiştir ve ilgili kurumlarca takibe alınacaktır.')
+      : infoText(`Maalesef raporunuz şu gerekçeyle reddedilmiştir:<br/><br/><em style="color:#ff6b6b;">"${reason || 'Yetersiz veya hatalı bilgi. Lütfen eksiklikleri gidererek tekrar gönderin.'}"</em>`)
+    }
+
+    ${isApproved
+      ? ctaButton('Canlı Haritayı Görüntüle', 'https://aquaguard-app.vercel.app/harita', '#00d4ff')
+      : ctaButton('Yeni Rapor Oluştur', 'https://aquaguard-app.vercel.app', '#ff6b6b')
+    }
+  `
+
+  return sendMail(to, `[AquaGuard] ${subject}`, template(subject, color, icon, body))
+}
