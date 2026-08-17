@@ -51,7 +51,7 @@ interface NewReportModalProps {
 function NewReportModal({ onClose }: NewReportModalProps) {
   const router = useRouter();
   const [form, setForm] = useState({
-    title: '', location: '', description: '', riskLevel: 'medium' as const,
+    title: '', location: '', description: '', riskLevel: 'medium' as 'low' | 'medium' | 'high' | 'critical',
   });
   const [submitting, setSubmitting] = useState(false);
 
