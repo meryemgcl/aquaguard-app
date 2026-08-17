@@ -29,6 +29,8 @@ export default function KanbanBoard() {
   const [movingCard, setMovingCard] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  // Sürükleme başlamadan önceki orijinal kolonu sakla (race condition fix)
+  const [dragOriginColumn, setDragOriginColumn] = useState<string | null>(null);
 
   /* ── Toast helper ── */
   const showToast = useCallback((msg: string, type: 'success' | 'error' = 'success') => {
@@ -63,6 +65,8 @@ export default function KanbanBoard() {
   const handleDragStart = (event: DragStartEvent) => {
     const card = cards.find(c => c.id === event.active.id);
     setActiveCard(card ?? null);
+    // Orijinal kolonu kaydet — handleDragOver state'i değiştirmeden önce
+    setDragOriginColumn(card?.column ?? null);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -81,29 +85,46 @@ export default function KanbanBoard() {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveCard(null);
-    if (!over) return;
+
+    if (!over) {
+      // Bırakılmadıysa orijinal konuma geri döndür
+      if (dragOriginColumn) {
+        const cardId = active.id as string;
+        setCards(prev => prev.map(c =>
+          c.id === cardId ? { ...c, column: dragOriginColumn as KanbanColumn } : c
+        ));
+      }
+      setDragOriginColumn(null);
+      return;
+    }
+
     const cardId = active.id as string;
     const overId = over.id as string;
+
+    // targetColumn: bırakılan alan sütun mu yoksa kart mı?
     const targetColumn = COLUMNS.find(c => c.id === overId)?.id
       ?? cards.find(c => c.id === overId)?.column;
-    if (!targetColumn) return;
-    const originalCard = cards.find(c => c.id === cardId);
-    if (!originalCard || originalCard.column === targetColumn) return;
+
+    // Orijinal kolonu dragOriginColumn'dan al (state race condition'ını önler)
+    const originCol = dragOriginColumn;
+    setDragOriginColumn(null);
+
+    if (!targetColumn || !originCol || originCol === targetColumn) return;
 
     setMovingCard(cardId);
     try {
-      // Update directly in Firebase
+      // Firebase'e yaz
       await updateDoc(doc(db, 'reports', cardId), {
         column: targetColumn,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
     } catch (err) {
-      console.error(err);
-      // Revert if error
+      console.error('Firebase yazma hatası:', err);
+      // Hata olursa orijinal konuma geri döndür
       setCards(prev => prev.map(c =>
-        c.id === cardId ? { ...c, column: originalCard.column } : c
+        c.id === cardId ? { ...c, column: originCol as KanbanColumn } : c
       ));
-      showToast('Taşıma başarısız.', 'error');
+      showToast('Taşıma başarısız. Firebase bağlantısını kontrol edin.', 'error');
     } finally {
       setMovingCard(null);
     }
