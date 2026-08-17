@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { APPROVAL_ROLES, KanbanCard, ApprovalRecord } from '@/lib/kanban';
-import { sendRejectionMail } from '@/lib/email';
+import { sendRejectionMail, sendCitizenNotificationMail } from '@/lib/email';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
@@ -53,17 +53,16 @@ export async function POST(request: NextRequest) {
     const updatedCard = { ...card, column: 'reddedildi', approvals: [...(card.approvals || []), newApproval] };
 
     // ── Red Maili ──────────────────────────────────────────────
-    const rejectionReason = reason || 'İnceleme sonucunda yeterli belge/veri bulunmadığı tespit edilmiştir.';
     const adminEmail = process.env.ADMIN_EMAIL || '';
-
-    if (card.creatorEmail) {
-      sendRejectionMail(card.creatorEmail, card.title, rejectionReason, payload.name).catch(console.error);
+    if (card.creatorEmail && card.creatorEmail !== adminEmail) {
+      sendRejectionMail(card.creatorEmail, card.title, reason, payload.name).catch(console.error);
     }
-    if (adminEmail && adminEmail !== card.creatorEmail) {
-      sendRejectionMail(adminEmail, card.title, rejectionReason, payload.name).catch(console.error);
+    
+    if (card.creatorEmail && card.creatorEmail !== 'yeni@aquaguard.com') {
+      sendCitizenNotificationMail(card.creatorEmail, card.title, card.location, 'rejected', reason).catch(console.error);
     }
 
-    return NextResponse.json({ success: true, card: updatedCard, message: 'Reddedildi. İlgili taraflara bildirim gönderildi.' });
+    return NextResponse.json({ success: true, card: updatedCard, message: `Reddedildi. Mail gönderildi.` });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Sunucu hatası' }, { status: 500 });
   }

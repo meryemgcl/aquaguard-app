@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { APPROVAL_ROLES, APPROVAL_NEXT, KanbanColumn, ApprovalRecord, KanbanCard } from '@/lib/kanban';
-import { sendExpertApprovalMail, sendManagerApprovalMail } from '@/lib/email';
+import { sendExpertApprovalMail, sendManagerApprovalMail, sendCitizenNotificationMail } from '@/lib/email';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
@@ -69,6 +69,11 @@ export async function POST(request: NextRequest) {
       sendManagerApprovalMail(adminEmail, card.title, card.location, payload.name, draft).catch(console.error);
       if (card.creatorEmail && card.creatorEmail !== adminEmail) {
         sendManagerApprovalMail(card.creatorEmail, card.title, card.location, payload.name, draft).catch(console.error);
+      }
+      
+      // Vatandaşa nihai onay bildirimi (Yayınlandı)
+      if (nextCol === 'yayinlandi' && card.creatorEmail && card.creatorEmail !== 'yeni@aquaguard.com') {
+        sendCitizenNotificationMail(card.creatorEmail, card.title, card.location, 'approved').catch(console.error);
       }
     }
 
