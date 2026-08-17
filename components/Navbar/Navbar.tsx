@@ -51,7 +51,7 @@ interface NewReportModalProps {
 function NewReportModal({ onClose }: NewReportModalProps) {
   const router = useRouter();
   const [form, setForm] = useState({
-    title: '', location: '', description: '', riskLevel: 'medium' as const,
+    title: '', location: '', description: '', email: '', riskLevel: 'medium' as 'low' | 'medium' | 'high' | 'critical',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -76,7 +76,7 @@ function NewReportModal({ onClose }: NewReportModalProps) {
         riskLevel: form.riskLevel,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        creatorEmail: 'yeni@aquaguard.com',
+        creatorEmail: form.email || 'vatandas@aquaguard.com',
         assignee: { name: 'Atanmadı', role: 'uzman', initials: '--', color: '#8892a8' },
         tags: [],
         approvals: [],
@@ -143,6 +143,19 @@ function NewReportModal({ onClose }: NewReportModalProps) {
               placeholder="Örn: Tekirdağ, TR"
               value={form.location}
               onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.4rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              E-posta Adresiniz (Sonuç Bildirimi İçin) *
+            </label>
+            <input
+              className="input"
+              type="email"
+              placeholder="Örn: adiniz@email.com"
+              value={form.email}
+              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
               required
             />
           </div>
