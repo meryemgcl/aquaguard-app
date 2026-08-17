@@ -55,50 +55,68 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 export default function DashboardClient() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fbCards, setFbCards] = useState<any[]>([]);
 
+  /* ── 1. Firebase onSnapshot — birincil veri kaynağı ── */
   useEffect(() => {
-    let unsubscribe: () => void;
-    let currentData: DashboardData | null = null;
+    const unsubscribe = onSnapshot(
+      collection(db, 'reports'),
+      (snapshot) => {
+        const cards: any[] = [];
+        snapshot.forEach((docSnap) => cards.push(docSnap.data()));
+        setFbCards(cards);
+      },
+      (err) => {
+        console.error('Firebase bağlantı hatası:', err);
+        // Firebase hata verse bile loading'i kapat, API verisiyle devam et
+        setLoading(false);
+      }
+    );
+    return () => unsubscribe();
+  }, []);
 
+  /* ── 2. /api/dashboard — istatistik ve harita verisini getir ── */
+  useEffect(() => {
     fetch('/api/dashboard')
       .then(r => r.json())
       .then(d => {
-        if (d.success) {
-          currentData = d.data;
-          
-          unsubscribe = onSnapshot(collection(db, 'reports'), (snapshot) => {
-            const fbMarkers: MapMarker[] = [];
-            snapshot.forEach((docSnap) => {
-              const card = docSnap.data() as KanbanCard;
-              const coords = geocodeLocation(card.location);
-              const { riskColor } = riskScoreToColor(card.riskScore);
-              
-              fbMarkers.push({
-                id: `report-${card.id}`,
-                location: card.location,
-                lat: coords.lat,
-                lng: coords.lng,
-                riskScore: card.riskScore,
-                riskLevel: card.riskLevel,
-                riskColor,
-                lastMeasurement: card.createdAt.split('T')[0],
-                params: card.measurements || { ph: 7.0, turbidity: 5, dissolvedO2: 6, temperature: 20 },
-              });
-            });
-
-            if (currentData) {
-              setData({ ...currentData, markers: [...currentData.markers, ...fbMarkers] });
-            }
-          });
-        }
+        if (d.success) setData(d.data);
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error('/api/dashboard hatası:', err);
+        // API çökse bile statik bir fallback data yükle
+        setData({
+          stats: { totalReports: fbCards.length, pendingApproval: 0, avgRiskScore: 0, publishedThisMonth: 0, totalReportsTrend: 0, publishedTrend: 0 },
+          markers: [],
+          monthlyTrend: [],
+          regionData: [],
+          statusData: [],
+          recentActivity: [],
+        });
+      })
       .finally(() => setLoading(false));
+  }, []);  // eslint-disable-line
 
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, []);
+  /* ── 3. Firebase kartlarını harita işaretçilerine dönüştür ── */
+  useEffect(() => {
+    if (!data || fbCards.length === 0) return;
+    const fbMarkers: MapMarker[] = fbCards.map((card) => {
+      const coords = geocodeLocation(card.location);
+      const { riskColor } = riskScoreToColor(card.riskScore);
+      return {
+        id: `report-${card.id}`,
+        location: card.location,
+        lat: coords.lat,
+        lng: coords.lng,
+        riskScore: card.riskScore,
+        riskLevel: card.riskLevel,
+        riskColor,
+        lastMeasurement: card.createdAt?.split('T')[0] ?? '',
+        params: card.measurements || { ph: 7.0, turbidity: 5, dissolvedO2: 6, temperature: 20 },
+      };
+    });
+    setData(prev => prev ? { ...prev, markers: [...(prev.markers.filter(m => !m.id.startsWith('report-'))), ...fbMarkers] } : prev);
+  }, [fbCards]); // eslint-disable-line
 
   if (loading || !data) {
     return (
@@ -108,6 +126,7 @@ export default function DashboardClient() {
       </div>
     );
   }
+
 
   const riskColor = data.stats.avgRiskScore <= 30 ? '#00ff88' : data.stats.avgRiskScore <= 60 ? '#f59e0b' : '#ff4444';
 
