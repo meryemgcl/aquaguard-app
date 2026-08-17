@@ -6,6 +6,8 @@ import { useAuth } from '@/components/AuthProvider/AuthProvider';
 import { ROLE_LABELS, ROLE_COLORS } from '@/lib/types';
 import { geocodeLocation, riskScoreToColor } from '@/lib/geocode';
 import { toast } from 'sonner';
+import { db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import styles from './Navbar.module.css';
 
 const routeTitles: Record<string, { title: string; breadcrumb: string }> = {
@@ -61,55 +63,33 @@ function NewReportModal({ onClose }: NewReportModalProps) {
     }
     setSubmitting(true);
     try {
-      const res = await fetch('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        const card = data.card;
+      const cardId = `card-${Date.now()}`;
+      const riskScore = form.riskLevel === 'critical' ? 95 : form.riskLevel === 'high' ? 75 : form.riskLevel === 'medium' ? 50 : 20;
 
-        // 1. Sync card to localStorage Kanban board
-        try {
-          const stored = localStorage.getItem('aquaguard_kanban_cards');
-          const existingCards = stored ? JSON.parse(stored) : [];
-          existingCards.push(card);
-          localStorage.setItem('aquaguard_kanban_cards', JSON.stringify(existingCards));
-        } catch { /* kanban sync hatası — devam et */ }
+      const newCard = {
+        id: cardId,
+        title: form.title,
+        location: form.location,
+        description: form.description,
+        column: 'yeni',
+        riskScore,
+        riskLevel: form.riskLevel,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        creatorEmail: 'yeni@aquaguard.com',
+        assignee: { name: 'Atanmadı', role: 'uzman', initials: '--', color: '#8892a8' },
+        tags: [],
+        approvals: [],
+      };
 
-        // 2. Geocode location → harita marker'ı olarak localStorage'a kaydet
-        try {
-          const coords = geocodeLocation(form.location);
-          const riskScore = card?.riskScore ?? 40;
-          const { riskLevel, riskColor } = riskScoreToColor(riskScore);
-          const newMarker = {
-            id: `report-${card?.id ?? Date.now()}`,
-            location: form.location,
-            lat: coords.lat,
-            lng: coords.lng,
-            riskScore,
-            riskLevel,
-            riskColor,
-            lastMeasurement: new Date().toISOString().split('T')[0],
-            params: { ph: 7.0, turbidity: 5, dissolvedO2: 6, temperature: 20 },
-            isUserReport: true,
-            reportTitle: form.title,
-          };
-          const storedMarkers = localStorage.getItem('aquaguard_report_markers');
-          const existingMarkers = storedMarkers ? JSON.parse(storedMarkers) : [];
-          existingMarkers.push(newMarker);
-          localStorage.setItem('aquaguard_report_markers', JSON.stringify(existingMarkers));
-        } catch { /* geocode hatası — devam et */ }
-
-        toast.success('Rapor başarıyla oluşturuldu!', { description: 'Kanban panosuna ve haritaya eklendi.' });
-        onClose();
-        router.push('/kanban');
-      } else {
-        toast.error('Hata', { description: data.error || 'Rapor oluşturulamadı.' });
-      }
-    } catch {
-      toast.error('Sunucuya bağlanılamadı.');
+      await setDoc(doc(db, 'reports', cardId), newCard);
+      
+      toast.success('Rapor başarıyla oluşturuldu!', { description: 'Gerçek zamanlı olarak sisteme eklendi.' });
+      onClose();
+      router.push('/kanban');
+    } catch (err) {
+      console.error(err);
+      toast.error('Sunucuya bağlanılamadı veya veritabanı hatası.');
     } finally {
       setSubmitting(false);
     }

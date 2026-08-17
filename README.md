@@ -1,120 +1,56 @@
-<h1 align="center">🌊 AquaGuard — Su Kalitesi İzleme ve Erken Uyarı Platformu</h1>
+# AquaGuard v3 - Gerçek Zamanlı Su Kalitesi İzleme Sistemi
 
-<p align="center">
-  <strong>Belediyeler, çevre uzmanları ve vatandaşlar için geliştirilmiş; Gemini destekli AI analizi, çoklu onay mekanizmalı iş kuyrukları ve otomatik bildirimler sunan akıllı su kalitesi yönetim sistemi.</strong>
-</p>
+AquaGuard, Türkiye genelindeki su kaynaklarının kalitesini izlemek, raporlamak ve yapay zeka (Gemini) ile analiz etmek için geliştirilmiş modern, şık ve **gerçek zamanlı (real-time)** bir web uygulamasıdır.
 
-<p align="center">
-  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=next.js&logoColor=white">
-  <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black">
-  <img alt="Gemini" src="https://img.shields.io/badge/Gemini-AI-4285F4?style=flat-square&logo=google&logoColor=white">
-  <img alt="Vercel" src="https://img.shields.io/badge/Vercel-Deployed-000000?style=flat-square&logo=vercel&logoColor=white">
-</p>
+## 🌟 Yenilikler (v3 Sürümü)
 
-<p align="center">
-  <a href="https://aquaguard-app-txd7.vercel.app/"><strong>🚀 Canlı Demo İçin Tıklayın</strong></a>
-</p>
+v3 sürümü ile birlikte AquaGuard, Firebase altyapısına geçiş yapmış ve tamamen **gerçek zamanlı** bir mimariye kavuşmuştur:
 
-<p align="center">
-  <a href="#nasil-calisir"><strong>Nasıl Çalışır</strong></a> ·
-  <a href="#mimari">Mimari</a> ·
-  <a href="#hizli-baslangic">Hızlı Başlangıç</a> ·
-  <a href="#ozellikler">Özellikler</a>
-</p>
+- **Gerçek Zamanlı Kanban Panosu:** Raporlar yetkililer arasında sürükle-bırak yöntemiyle taşınırken veritabanı anında güncellenir. Bir yetkili kartı taşıdığında, sisteme bağlı olan diğer tüm kullanıcıların ekranı sayfayı yenilemeye gerek kalmadan saniyeler içinde senkronize olur.
+- **Canlı Harita Entegrasyonu:** Pano (Dashboard) ve interaktif harita sayfası doğrudan Firestore veritabanına bağlanmıştır. "Yeni Rapor Ekle" butonuyla halk veya uzmanlar tarafından eklenen raporlar, haritada anında yeni bir nokta (marker) olarak belirir.
+- **Firebase Firestore Altyapısı:** Önceki sürümlerdeki LocalStorage (tarayıcı önbelleği) sınırlandırmaları kaldırılarak güvenli ve ölçeklenebilir bulut veritabanı altyapısına geçilmiştir.
+- **UI/UX İyileştirmeleri:** Leaflet harita render hataları giderilmiş, modern renk paletleri ve responsive tasarımlar iyileştirilmiştir.
 
----
+## 🛠️ Teknolojiler
 
-## İçindekiler
+- **Frontend:** Next.js 14 (App Router), React, CSS Modules
+- **Veritabanı:** Firebase Firestore (Real-time SDK)
+- **Harita:** Leaflet & React-Leaflet
+- **Yapay Zeka:** Google Gemini Pro (AI Analiz ve çözüm önerileri)
+- **Sürükle & Bırak:** @dnd-kit/core (Kanban için)
+- **Grafikler:** Recharts
 
-- [Neden Var?](#neden-var)
-- [Özellikler](#ozellikler)
-- [Mimari](#mimari)
-- [Nasıl Çalışır?](#nasil-calisir)
-- [Rol Bazlı Panolar](#rol-bazli-panolar)
-- [Hızlı Başlangıç](#hizli-baslangic)
+## 🚀 Kurulum
 
----
+Projeyi yerel ortamınızda çalıştırmak için:
 
-## Neden Var?
-
-Su kaynaklarının kirlenmesi, iklim krizi ve endüstriyel atıklar nedeniyle giderek büyüyen bir sorundur. Geleneksel su kalitesi izleme süreçleri genellikle yavaş, kopuk ve kurum içi manuel onay süreçleriyle (kağıt veya basit e-tablolar) yürütülmektedir.
-
-**AquaGuard**, vatandaşların çevre kirliliğini anlık olarak bildirebileceği, sahadan gelen verilerin **yapay zeka (Gemini)** tarafından anında analiz edilip risk skorlarının çıkarıldığı ve **Uzman -> Yönetici** şeklindeki dijital Kanban kuyruklarından geçerek resmi makamlara otomatik e-posta taslakları olarak iletildiği **akıllı ve modern bir otomasyon platformudur**.
-
----
-
-## Özellikler
-
-| Özellik | Açıklama |
-|---|---|
-| 🤖 **AI Destekli Analiz** | Saha parametrelerini (pH, Bulanıklık, Oksijen vb.) Gemini AI ile saniyeler içinde yorumlayarak risk seviyesi (Düşük/Orta/Yüksek/Kritik) belirler. |
-| 📋 **Kanban İş Akışı** | Raporlar sürükle-bırak destekli görsel panoda aşama aşama ilerler (Yeni → AI Analiz → Uzman Onayı → Yönetici Onayı → Yayınlandı). |
-| 🗺️ **Canlı / 3D Uydu Haritası** | Raporlanan verileri interaktif Türkiye haritası üzerinde gösterir. Koyu, Açık ve Canlı Uydu (Satellite) görünümleri sunar. |
-| 📄 **PDF Rapor Çıktısı** | Arşiv veya Kanban üzerinden onaylanmış raporlar ve ölçümler için tek tıkla cihazınıza uygun şık formatta PDF çıktısı almanızı sağlar. |
-| 🎓 **Eğitici Bilgi Kartları** | Oksijen, pH ve Bulanıklık gibi değerlerin yanına halk dilinde, "Beklenen aralık nedir? Aşıldığında ne olur?" gibi anlaşılır yönlendirmeler ekler. |
-| 🌓 **Dinamik Tema (Dark/Light)** | Göz yormayan, sistemin bütününe entegre olan ve tercihlerinizi kaydeden Açık ve Koyu tema seçenekleri (Glassmorphism tasarımı ile). |
-| 👥 **Rol Bazlı Erişim** | Vatandaş (Halk), Uzman, Yönetici ve Admin için birbirlerinden tamamen izole edilmiş yetkiler ve dashboard ekranları sunar. |
-| 📧 **Otomatik E-posta** | Onaylanan/reddedilen raporlar ve kritik alarmlar için *Resend API* ile gerçek zamanlı, HTML şablonlu mailler gönderir. |
-
----
-
-## Mimari
-
-Proje, güncel **Next.js 15 (App Router)** ve React 19 mimarisi üzerinde inşa edilmiştir. 
-
-- **Frontend:** React, Next.js, Vanilla CSS Modules (Glassmorphism)
-- **Backend:** Next.js Route Handlers (`/api/...`)
-- **Yapay Zeka:** Google Generative AI (`gemini-flash-latest`)
-- **Harita:** React-Leaflet
-- **Güvenlik:** JWT tabanlı, HTTP-Only Cookie oturum yönetimi
-- **Deployment:** Vercel (CI/CD Entegreli)
-
----
-
-## Nasıl Çalışır?
-
-1. **Rapor Oluşturma:** Vatandaş veya saha görevlisi, yeni bir su numunesi sonucunu veya çevre şikayetini sisteme girer.
-2. **AI Ön Değerlendirme:** Gemini AI, girilen parametreleri analiz eder ve rapora bir **Risk Skoru (0-100)** atar.
-3. **Uzman İncelemesi:** Çevre Uzmanı raporu inceler. Bilimsel olarak tutarlıysa onaylar, değilse gerekçesiyle reddeder.
-4. **Yönetici Onayı:** Uzmandan geçen rapor, bölge yöneticisinin ekranına düşer ve nihai onayı alır.
-5. **PDF Arşiv ve Otomatik Aksiyon:** Onaylanan rapor, tüm kullanıcıların inceleyip PDF olarak indirebileceği Arşive aktarılır ve ilgili makamlara bilgilendirme maili atılır.
-
----
-
-## Rol Bazlı Panolar
-
-Kullanıcılar "Profilim" sayfasına gittiklerinde kendi yetkilerine göre şekillenmiş panolar görürler:
-
-- **🌍 Vatandaş (Halk):** Sadece kendi gönderdiği raporların durumu, çevre rozetleri ve yerel uyarılar.
-- **🧑‍🔬 Uzman:** Uzman onayı bekleyen raporların ortak havuzu, hızlı AI analiz aracı.
-- **👔 Yönetici:** Uzmandan geçmiş ve nihai onay/red işlemi bekleyen kritik iş yükü.
-- **👑 Admin:** Tüm sistemin genel sağlığı ve istatistikleri.
-
----
-
-## Hızlı Başlangıç
-
-### Kurulum
-
-1. Repoyu klonlayın:
-```bash
-git clone https://github.com/meryemgcl/aquaguard-app.git
-cd aquaguard-v3
-```
-
+1. Repoyu bilgisayarınıza klonlayın.
 2. Bağımlılıkları yükleyin:
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
+3. Proje ana dizininde bir `.env.local` dosyası oluşturun ve aşağıdaki Firebase yapılandırmanızı ekleyin:
+   ```env
+   NEXT_PUBLIC_FIREBASE_API_KEY="api_key"
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="proje_id.firebaseapp.com"
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID="proje_id"
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="proje_id.firebasestorage.app"
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="sender_id"
+   NEXT_PUBLIC_FIREBASE_APP_ID="app_id"
+   ```
+4. Geliştirme sunucusunu başlatın:
+   ```bash
+   npm run dev
+   ```
+5. Tarayıcınızda `http://localhost:3000` adresine gidin.
 
-3. Kök dizinde `.env` dosyası oluşturun:
-```env
-JWT_SECRET=super-secret-jwt-key
-GEMINI_API_KEY=sizin-google-ai-anahtariniz
-RESEND_API_KEY=opsiyonel-resend-key
-```
+## 📋 İş Akışı (Rapor Yönetimi)
 
-4. Sunucuyu başlatın (`http://localhost:3000`):
-```bash
-npm run dev
-```
+1. **Yeni Rapor (Halk/Uzman):** Sisteme konum ve risk düzeyi belirtilerek girilir. Haritada anında belirir.
+2. **AI Analiz:** Gemini yapay zekası rapor verilerini analiz edip çözüm önerisi sunar.
+3. **1. Onay (Uzman):** Uzmanlar raporu inceler ve onaylar. (Bildirim maili gider)
+4. **2. Onay (Yönetici):** Yöneticiler son incelemeyi yapar ve yayınlar. (Nihai bildirim maili gider)
+5. **Yayınlandı:** Temiz veya onaylı raporlar halka açık haritada resmi olarak yerini alır.
+
+---
+*Geliştirici:* [Meryem Güçlü]

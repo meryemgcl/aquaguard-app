@@ -4,8 +4,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import { getCardById, addApproval, APPROVAL_ROLES } from '@/lib/kanban';
+import { APPROVAL_ROLES, KanbanCard, ApprovalRecord } from '@/lib/kanban';
 import { sendRejectionMail } from '@/lib/email';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,15 +20,19 @@ export async function POST(request: NextRequest) {
     const { cardId, reason } = await request.json();
     if (!cardId) return NextResponse.json({ error: 'cardId gerekli.' }, { status: 400 });
 
-    const card = getCardById(cardId);
-    if (!card) return NextResponse.json({ error: 'Kart bulunamadı.' }, { status: 404 });
+    const cardRef = doc(db, 'reports', cardId);
+    const cardSnap = await getDoc(cardRef);
+    if (!cardSnap.exists()) return NextResponse.json({ error: 'Kart bulunamadı.' }, { status: 404 });
+    const card = cardSnap.data() as KanbanCard;
 
     const allowedRoles = APPROVAL_ROLES[card.column];
     if (!allowedRoles || !allowedRoles.includes(payload.role as any)) {
       return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
     }
 
-    const updated = addApproval(cardId, {
+    const newApproval: ApprovalRecord = {
+      id: `appr-${Date.now()}`,
+      cardId,
       action: 'rejected',
       role: payload.role as any,
       actorName: payload.name,
@@ -34,11 +40,17 @@ export async function POST(request: NextRequest) {
       actorColor: '#ff4444',
       columnFrom: card.column,
       columnTo: 'reddedildi',
-      reason: reason
+      reason: reason,
+      timestamp: new Date().toISOString()
+    };
+
+    await updateDoc(cardRef, {
+      column: 'reddedildi',
+      updatedAt: new Date().toISOString(),
+      approvals: arrayUnion(newApproval)
     });
 
-    if (!updated) return NextResponse.json({ error: 'Kart güncellenemedi.' }, { status: 500 });
-    const updatedCard = updated.card;
+    const updatedCard = { ...card, column: 'reddedildi', approvals: [...(card.approvals || []), newApproval] };
 
     // ── Red Maili ──────────────────────────────────────────────
     const rejectionReason = reason || 'İnceleme sonucunda yeterli belge/veri bulunmadığı tespit edilmiştir.';

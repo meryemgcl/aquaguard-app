@@ -7,6 +7,8 @@ import {
 } from '@dnd-kit/core';
 import { KanbanCard, KanbanColumn, COLUMNS } from '@/lib/kanban';
 import { useAuth } from '@/components/AuthProvider/AuthProvider';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import KanbanColumnComponent from './KanbanColumn';
 import KanbanCardComponent from './KanbanCard';
 import ApprovalModal from './ApprovalModal';
@@ -34,39 +36,24 @@ export default function KanbanBoard() {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
-  /* ── Fetch and Persist cards ── */
-  const fetchCards = useCallback(async () => {
-    try {
-      // 1. Check local storage first
-      const stored = localStorage.getItem('aquaguard_kanban_cards');
-      if (stored) {
-        setCards(JSON.parse(stored));
-        setLoading(false);
-        return;
-      }
-
-      // 2. Fallback to API if first time
-      const res = await fetch('/api/kanban');
-      const data = await res.json();
-      if (data.success) {
-        setCards(data.cards);
-        localStorage.setItem('aquaguard_kanban_cards', JSON.stringify(data.cards));
-      }
-    } catch {
-      showToast('Kartlar yüklenemedi.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [showToast]);
-
-  useEffect(() => { fetchCards(); }, [fetchCards]);
-
-  // Sync cards to localStorage whenever they change
+  /* ── Firebase onSnapshot for real-time cards ── */
   useEffect(() => {
-    if (cards.length > 0) {
-      localStorage.setItem('aquaguard_kanban_cards', JSON.stringify(cards));
-    }
-  }, [cards]);
+    const unsubscribe = onSnapshot(collection(db, 'reports'), (snapshot) => {
+      const fbCards: KanbanCard[] = [];
+      snapshot.forEach((doc) => {
+        fbCards.push(doc.data() as KanbanCard);
+      });
+      // Order by createdAt descending or leave as is
+      setCards(fbCards);
+      setLoading(false);
+    }, (error) => {
+      console.error('Firebase error:', error);
+      showToast('Kartlar yüklenemedi.', 'error');
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [showToast]);
 
   /* ── DnD sensors ── */
   const sensors = useSensors(
@@ -105,14 +92,14 @@ export default function KanbanBoard() {
 
     setMovingCard(cardId);
     try {
-      const res = await fetch('/api/kanban', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: cardId, column: targetColumn }),
+      // Update directly in Firebase
+      await updateDoc(doc(db, 'reports', cardId), {
+        column: targetColumn,
+        updatedAt: new Date().toISOString()
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
-    } catch {
+    } catch (err) {
+      console.error(err);
+      // Revert if error
       setCards(prev => prev.map(c =>
         c.id === cardId ? { ...c, column: originalCard.column } : c
       ));

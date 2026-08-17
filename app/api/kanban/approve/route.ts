@@ -4,8 +4,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import { getCardById, addApproval, APPROVAL_ROLES, APPROVAL_NEXT, KanbanColumn } from '@/lib/kanban';
+import { APPROVAL_ROLES, APPROVAL_NEXT, KanbanColumn, ApprovalRecord, KanbanCard } from '@/lib/kanban';
 import { sendExpertApprovalMail, sendManagerApprovalMail } from '@/lib/email';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,8 +20,11 @@ export async function POST(request: NextRequest) {
     const { cardId, draftEmail } = await request.json();
     if (!cardId) return NextResponse.json({ error: 'cardId gerekli.' }, { status: 400 });
 
-    const card = getCardById(cardId);
-    if (!card) return NextResponse.json({ error: 'Kart bulunamadı.' }, { status: 404 });
+    const cardRef = doc(db, 'reports', cardId);
+    const cardSnap = await getDoc(cardRef);
+    
+    if (!cardSnap.exists()) return NextResponse.json({ error: 'Kart bulunamadı.' }, { status: 404 });
+    const card = cardSnap.data() as KanbanCard;
 
     const allowedRoles = APPROVAL_ROLES[card.column];
     if (!allowedRoles || !allowedRoles.includes(payload.role as any)) {
@@ -29,18 +34,26 @@ export async function POST(request: NextRequest) {
     const nextCol = APPROVAL_NEXT[card.column];
     if (!nextCol) return NextResponse.json({ error: 'Sonraki asama bulunamadi.' }, { status: 400 });
 
-    const updated = addApproval(cardId, {
+    const newApproval: ApprovalRecord = {
+      id: `appr-${Date.now()}`,
+      cardId,
       action: 'approved',
       role: payload.role as any,
       actorName: payload.name,
       actorInitials: payload.name.substring(0,2).toUpperCase(),
       actorColor: '#6e8efb',
       columnFrom: card.column,
-      columnTo: nextCol
+      columnTo: nextCol,
+      timestamp: new Date().toISOString()
+    };
+
+    await updateDoc(cardRef, {
+      column: nextCol,
+      updatedAt: new Date().toISOString(),
+      approvals: arrayUnion(newApproval)
     });
 
-    if (!updated) return NextResponse.json({ error: 'Kart güncellenemedi.' }, { status: 500 });
-    const updatedCard = updated.card;
+    const updatedCard = { ...card, column: nextCol, approvals: [...(card.approvals || []), newApproval] };
 
     // ── Mail bildirimleri ──────────────────────────────────────
     const adminEmail = process.env.ADMIN_EMAIL || '';

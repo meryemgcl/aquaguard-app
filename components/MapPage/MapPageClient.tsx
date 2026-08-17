@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { KanbanCard } from '@/lib/kanban';
+import { geocodeLocation, riskScoreToColor } from '@/lib/geocode';
 import styles from './MapPage.module.css';
 
 const WaterMap = dynamic(() => import('@/components/Dashboard/WaterMap'), {
@@ -23,16 +27,7 @@ interface MapMarker {
   params: { ph: number; turbidity: number; dissolvedO2: number; temperature: number };
 }
 
-/** localStorage'daki rapor marker'larını güvenli oku */
-function getStoredReportMarkers(): MapMarker[] {
-  try {
-    const raw = localStorage.getItem('aquaguard_report_markers');
-    if (!raw) return [];
-    return JSON.parse(raw) as MapMarker[];
-  } catch {
-    return [];
-  }
-}
+
 
 export default function MapPageClient() {
   const [apiMarkers, setApiMarkers]       = useState<MapMarker[]>([]);
@@ -40,18 +35,33 @@ export default function MapPageClient() {
   const [loading, setLoading]             = useState(true);
   const [filter, setFilter]               = useState<'all' | 'low' | 'medium' | 'high' | 'critical'>('all');
 
-  /* ── 1. LocalStorage marker'larını hemen yükle (API bekleme) ── */
+  /* ── 1. Firebase onSnapshot ile gerçek zamanlı raporlar ── */
   useEffect(() => {
-    setReportMarkers(getStoredReportMarkers());
+    const unsubscribe = onSnapshot(collection(db, 'reports'), (snapshot) => {
+      const markers: MapMarker[] = [];
+      snapshot.forEach((docSnap) => {
+        const card = docSnap.data() as KanbanCard;
+        const coords = geocodeLocation(card.location);
+        const { riskColor } = riskScoreToColor(card.riskScore);
+        
+        markers.push({
+          id: `report-${card.id}`,
+          location: card.location,
+          lat: coords.lat,
+          lng: coords.lng,
+          riskScore: card.riskScore,
+          riskLevel: card.riskLevel,
+          riskColor,
+          lastMeasurement: card.createdAt.split('T')[0],
+          isUserReport: true,
+          reportTitle: card.title,
+          params: card.measurements || { ph: 7.0, turbidity: 5, dissolvedO2: 6, temperature: 20 },
+        });
+      });
+      setReportMarkers(markers);
+    });
 
-    // storage event: başka sekme/pencere rapor eklerse güncelle
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'aquaguard_report_markers') {
-        setReportMarkers(getStoredReportMarkers());
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    return () => unsubscribe();
   }, []);
 
   /* ── 2. API marker'larını yükle ── */

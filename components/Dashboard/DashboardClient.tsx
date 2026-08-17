@@ -7,6 +7,10 @@ import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, Legend,
 } from 'recharts';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { KanbanCard } from '@/lib/kanban';
+import { geocodeLocation, riskScoreToColor } from '@/lib/geocode';
 import styles from './Dashboard.module.css';
 
 /* Dynamic import for Leaflet (no SSR) */
@@ -53,21 +57,47 @@ export default function DashboardClient() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubscribe: () => void;
+    let currentData: DashboardData | null = null;
+
     fetch('/api/dashboard')
       .then(r => r.json())
       .then(d => {
         if (d.success) {
-          // Merge API markers with user-submitted report markers from localStorage
-          const stored = typeof window !== 'undefined'
-            ? localStorage.getItem('aquaguard_report_markers')
-            : null;
-          const reportMarkers = stored ? JSON.parse(stored) : [];
-          const merged = { ...d.data, markers: [...d.data.markers, ...reportMarkers] };
-          setData(merged);
+          currentData = d.data;
+          
+          unsubscribe = onSnapshot(collection(db, 'reports'), (snapshot) => {
+            const fbMarkers: MapMarker[] = [];
+            snapshot.forEach((docSnap) => {
+              const card = docSnap.data() as KanbanCard;
+              const coords = geocodeLocation(card.location);
+              const { riskColor } = riskScoreToColor(card.riskScore);
+              
+              fbMarkers.push({
+                id: `report-${card.id}`,
+                location: card.location,
+                lat: coords.lat,
+                lng: coords.lng,
+                riskScore: card.riskScore,
+                riskLevel: card.riskLevel,
+                riskColor,
+                lastMeasurement: card.createdAt.split('T')[0],
+                params: card.measurements || { ph: 7.0, turbidity: 5, dissolvedO2: 6, temperature: 20 },
+              });
+            });
+
+            if (currentData) {
+              setData({ ...currentData, markers: [...currentData.markers, ...fbMarkers] });
+            }
+          });
         }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   if (loading || !data) {
