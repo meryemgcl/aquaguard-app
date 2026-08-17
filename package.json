@@ -29,6 +29,8 @@
     "recharts": "^3.10.1",
     "resend": "^6.18.1",
     "sonner": "^2.0.7",
+    "supercluster": "^9.0.0",
+    "use-supercluster": "^1.2.0",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
