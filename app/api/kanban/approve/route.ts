@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const token = request.cookies.get('token')?.value;
     if (!token) return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 });
 
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
     if (!payload) return NextResponse.json({ error: 'Geçersiz oturum.' }, { status: 401 });
 
     const { cardId, draftEmail } = await request.json();

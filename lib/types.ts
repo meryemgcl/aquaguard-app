@@ -2,7 +2,7 @@
    AquaGuard — Type Definitions
    ============================================================ */
 
-export type UserRole = 'admin' | 'uzman' | 'yonetici' | 'halk';
+export type UserRole = 'super_admin' | 'admin' | 'uzman' | 'yonetici' | 'halk';
 
 export interface User {
   id: string;
@@ -48,6 +48,7 @@ export interface Report {
 
 /* Role display names & permissions */
 export const ROLE_LABELS: Record<UserRole, string> = {
+  super_admin: 'Süper Admin',
   admin: 'Sistem Yöneticisi',
   uzman: 'Çevre Uzmanı',
   yonetici: 'Yönetici',
@@ -55,6 +56,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 export const ROLE_COLORS: Record<UserRole, string> = {
+  super_admin: '#ff4444',
   admin: '#00d4ff',
   uzman: '#6e8efb',
   yonetici: '#00ff88',
@@ -63,6 +65,7 @@ export const ROLE_COLORS: Record<UserRole, string> = {
 
 /* Routes accessible by each role */
 export const ROLE_ROUTES: Record<UserRole, string[]> = {
+  super_admin: ['/', '/kanban', '/harita', '/ai-analiz', '/mail-sablonlari', '/kullanicilar', '/ayarlar', '/arsiv'],
   admin: ['/', '/kanban', '/harita', '/ai-analiz', '/mail-sablonlari', '/kullanicilar', '/ayarlar', '/arsiv'],
   uzman: ['/', '/kanban', '/harita', '/ai-analiz', '/arsiv'],
   yonetici: ['/', '/kanban', '/harita', '/ai-analiz', '/mail-sablonlari', '/arsiv'],

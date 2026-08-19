@@ -1,23 +1,27 @@
 /* ============================================================
-   AquaGuard — JWT Auth Utilities
+   AquaGuard — Edge Compatible JWT Auth Utilities (Phase 1)
    ============================================================ */
 
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { JWTPayload } from './types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'aquaguard-super-secret-key-2026';
-const JWT_EXPIRES_IN = '7d';
+const getSecret = () => new TextEncoder().encode(process.env.JWT_SECRET || 'aquaguard-super-secret-key-2026');
 
-/* ── Token Operations ── */
+/* ── Token Operations (Edge Compatible with jose) ── */
 
-export function createToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+export async function createToken(payload: JWTPayload): Promise<string> {
+  return new SignJWT(payload as any)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(getSecret());
 }
 
-export function verifyToken(token: string): JWTPayload | null {
+export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const { payload } = await jwtVerify(token, getSecret());
+    return payload as unknown as JWTPayload;
   } catch {
     return null;
   }
@@ -31,7 +35,7 @@ export function getTokenFromHeader(authHeader: string | null): string | null {
   return null;
 }
 
-/* ── Password Operations ── */
+/* ── Password Operations (Node.js only - do not use in middleware) ── */
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);

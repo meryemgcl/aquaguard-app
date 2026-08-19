@@ -19,6 +19,7 @@
     "bcryptjs": "^3.0.3",
     "firebase": "^12.17.1",
     "framer-motion": "^13.0.0",
+    "jose": "^6.2.9",
     "jsonwebtoken": "^9.0.3",
     "leaflet": "^1.9.4",
     "lowdb": "^7.0.1",
