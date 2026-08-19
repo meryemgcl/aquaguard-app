@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const SYSTEM_CONTEXT = `Sen AquaGuard'ın çevre asistanısın. Görevin doğayı koruyan uzmanlara ve halka yardımcı olmak.
-Çok teknik, soğuk ve "robotik" bir dil yerine; samimi, yardımsever ve doğal bir dil kullan. Cümlelerin sıcak olsun.
-Bilmediğin durumlarda "Bunu tam olarak bilemiyorum ama birlikte araştırabiliriz" gibi insani tepkiler ver.
-Kesinlikle "Ben bir yapay zeka asistanıyım" gibi mekanik girişler yapma. Doğayı ve suyu ne kadar önemsediğini hissettir.
+const SYSTEM_CONTEXT = `Sen AquaGuard platformunun yapay zeka asistanısın. 
+Su kalitesi izleme ve analiz konusunda uzman bir chatbotsun.
+Türkçe, kısa ve net cevaplar ver. Teknik terimleri açıkla.
+Bilmediğin şeyleri uydurma, "Bu konuda yardımcı olamıyorum" de.
 
-Özet Ekosistem Durumu:
-- Ergene Nehri (Tekirdağ): pH 4.2. Ne yazık ki çok asidik, su canlıları için tehlikeli boyutta.
-- Sapanca Gölü (Sakarya): Çözünmüş Oksijen 1.8 mg/L. Göldeki oksijen çok düşük, acil havalandırma gerekebilir.
-- Gediz Havzası (İzmir): Ağır Metal 0.21 mg/L. Sınırın biraz üzerinde, dikkatle izlenmeli.
-- Melen Çayı (Düzce): Her şey yolunda, suyumuz pırıl pırıl.`
+Mevcut izleme noktaları:
+- Ergene Nehri (Tekirdağ): pH 4.2 (KRİTİK), Yüksek Risk
+- Sapanca Gölü (Sakarya): Çözünmüş O2 1.8 mg/L (KRİTİK), Yüksek Risk  
+- Gediz Havzası (İzmir): Ağır Metal 0.21 mg/L (UYARI), Orta Risk
+- Melen Çayı (Düzce): Tüm parametreler normal, Düşük Risk`
 
 import { verifyToken } from '@/lib/auth'
 
@@ -31,11 +31,11 @@ export async function POST(req: NextRequest) {
     if (!apiKey) {
       // Fallback: rule-based responses
       const lower = message.toLowerCase()
-      let reply = 'Şu an sistemde ufak bir bağlantı sorunu var galiba, doğa biraz dinlenmek istiyor olabilir. Lütfen birazdan tekrar dene.'
-      if (lower.includes('riskli')) reply = 'Maalesef şu an en riskli nokta Ergene Nehri gibi görünüyor. pH değeri 4.2 seviyelerinde, bu da su canlıları için çok asidik ve tehlikeli.'
-      else if (lower.includes('ph')) reply = 'Ergene Nehri\'nin pH değeri 4.2. İdeal olan 6.5–8.5 aralığıdır. Ne yazık ki acil müdahale şart.'
-      else if (lower.includes('oksijen')) reply = 'Sapanca Gölü\'nde oksijen seviyesi 1.8 mg/L. Balıklar nefes almakta zorlanıyor olabilir, acilen incelemeliyiz.'
-      else if (lower.includes('genel') || lower.includes('durum')) reply = 'Genel olarak baktığımda, Ergene ve Sapanca acil yardımımızı bekliyor. Melen Çayı ise pırıl pırıl.'
+      let reply = 'Üzgünüm, şu an yapay zeka servisine bağlanamıyorum.'
+      if (lower.includes('riskli')) reply = '🔴 En riskli nokta **Ergene Nehri**\'dir. pH değeri 4.2 ile kritik asidik seviyede.'
+      else if (lower.includes('ph')) reply = '🧪 Ergene Nehri pH: 4.2 (kritik). Normal aralık 6.5–8.5. Acil müdahale gerekiyor.'
+      else if (lower.includes('oksijen')) reply = '💨 Sapanca Gölü\'nde çözünmüş oksijen 1.8 mg/L — kritik düşük (norm: ≥5 mg/L).'
+      else if (lower.includes('genel') || lower.includes('durum')) reply = '📊 4 noktadan 2\'si kritik, 1\'i uyarı seviyesinde. Ergene ve Sapanca acil müdahale bekliyor.'
       return NextResponse.json({ success: true, reply })
     }
 

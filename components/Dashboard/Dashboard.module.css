@@ -15,13 +15,13 @@
   justify-content: center;
   gap: 1rem;
   min-height: 400px;
-  color: var(--text-secondary);
+  color: #8892a8;
 }
 
 .loadingSpinner {
   width: 40px; height: 40px;
   border: 3px solid rgba(255,255,255,0.06);
-  border-top-color: var(--accent);
+  border-top-color: #00d4ff;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -57,10 +57,10 @@
   border-radius: 16px 16px 0 0;
 }
 
-.statAccent::before { background: linear-gradient(90deg, var(--accent), transparent); }
-.statWarning::before { background: linear-gradient(90deg, var(--warning), transparent); }
-.statRisk::before { background: linear-gradient(90deg, var(--danger), transparent); }
-.statInfo::before { background: linear-gradient(90deg, var(--info), transparent); }
+.statAccent::before { background: linear-gradient(90deg, #00d4ff, transparent); }
+.statWarning::before { background: linear-gradient(90deg, #f59e0b, transparent); }
+.statRisk::before { background: linear-gradient(90deg, #ff4444, transparent); }
+.statInfo::before { background: linear-gradient(90deg, #6e8efb, transparent); }
 
 .statCard:hover {
   border-color: rgba(255,255,255,0.12);
@@ -91,7 +91,7 @@
 .trendUp {
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--success);
+  color: #00ff88;
 }
 
 .badgeWarning {
@@ -101,7 +101,7 @@
   border-radius: 20px;
   background: rgba(245,158,11,0.12);
   border: 1px solid rgba(245,158,11,0.3);
-  color: var(--warning);
+  color: #f59e0b;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -113,20 +113,20 @@
   border-radius: 20px;
   background: rgba(0,255,136,0.1);
   border: 1px solid rgba(0,255,136,0.3);
-  color: var(--success);
+  color: #00ff88;
 }
 
 .statValue {
   font-size: 2rem;
   font-weight: 800;
-  color: var(--text-primary);
+  color: #f0f4ff;
   letter-spacing: -0.03em;
   line-height: 1;
 }
 
 .statLabel {
   font-size: 0.78rem;
-  color: var(--text-secondary);
+  color: #8892a8;
   font-weight: 500;
 }
 
@@ -171,7 +171,7 @@
 .sectionTitle {
   font-size: 0.95rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #f0f4ff;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -180,7 +180,7 @@
 .sectionBadge {
   font-size: 0.68rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: #8892a8;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.07);
   padding: 3px 10px;
@@ -190,7 +190,7 @@
 .viewAllBtn {
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--accent);
+  color: #00d4ff;
   text-decoration: none;
   padding: 0.35rem 0.75rem;
   border-radius: 8px;
@@ -214,7 +214,7 @@
   justify-content: center;
   background: rgba(13,18,37,0.8);
   border-radius: 12px;
-  color: var(--text-secondary);
+  color: #8892a8;
   font-size: 0.9rem;
 }
 
@@ -231,7 +231,7 @@
   align-items: center;
   gap: 0.35rem;
   font-size: 0.72rem;
-  color: var(--text-secondary);
+  color: #8892a8;
 }
 
 .legendDot {
@@ -264,7 +264,7 @@
 .chartHeader h3 {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #f0f4ff;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -286,7 +286,7 @@
 
 .tooltipLabel {
   font-size: 0.72rem;
-  color: var(--text-secondary);
+  color: #8892a8;
   margin-bottom: 4px;
   font-weight: 600;
 }
@@ -299,7 +299,7 @@
   color: #e8eeff;
 }
 
-.tooltipRow strong { color: var(--text-primary); }
+.tooltipRow strong { color: #f0f4ff; }
 
 .tooltipDot {
   width: 7px; height: 7px;
@@ -330,13 +330,13 @@
 }
 
 .pieLegendLabel {
-  color: var(--text-primary);
+  color: #c8d0e0;
   flex: 1;
 }
 
 .pieLegendValue {
   font-weight: 700;
-  color: var(--text-primary);
+  color: #f0f4ff;
 }
 
 /* ── Activity Section ── */
@@ -382,7 +382,7 @@
 
 .activityText {
   font-size: 0.82rem;
-  color: var(--text-primary);
+  color: #c8d0e0;
   line-height: 1.4;
 }
 
@@ -390,7 +390,7 @@
 
 .activityTime {
   font-size: 0.7rem;
-  color: var(--text-muted);
+  color: #555f75;
 }
 
 /* ── Leaflet overrides for dark popups ── */
@@ -406,7 +406,7 @@
 }
 
 :global(.leaflet-popup-tip) {
-  background: var(--bg-secondary) !important;
+  background: #111827 !important;
 }
 
 /* ── Responsive ── */

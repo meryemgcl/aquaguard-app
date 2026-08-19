@@ -138,8 +138,8 @@ export default function Sidebar() {
         <svg className={styles.logoIcon} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="dropGrad" x1="10" y1="5" x2="30" y2="35" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#40a080" />
-              <stop offset="100%" stopColor="#2d7a60" />
+              <stop offset="0%" stopColor="#00d4ff" />
+              <stop offset="100%" stopColor="#6e8efb" />
             </linearGradient>
           </defs>
           <path

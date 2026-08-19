@@ -10,73 +10,37 @@
    1. CSS Custom Properties
    ============================================================ */
 :root {
-  /* ── Colors (Dark Earth Theme) ── */
-  --bg-primary: #1c1917; /* Koyu toprak / taş rengi */
-  --bg-secondary: #292524;
-  --bg-card: #352f2d;
-  --bg-card-hover: #443d3b;
-  --bg-surface: #2d2826;
-  --bg-input: #201c1a;
+  /* ── Colors ── */
+  --bg-primary: #0a0f1e;
+  --bg-secondary: #111827;
+  --bg-card: #1a1f35;
+  --bg-card-hover: #232940;
+  --bg-surface: #151b2e;
+  --bg-input: #0d1225;
 
-  /* Accent: Doğal Su Yeşili / Kum Kahvesi harmanı */
-  --accent: #40a080; /* Doğal su yeşili */
-  --accent-dark: #2d7a60;
-  --accent-glow: rgba(64, 160, 128, 0.15);
-  --accent-glow-strong: rgba(64, 160, 128, 0.35);
+  --accent: #00d4ff;
+  --accent-dark: #009fc2;
+  --accent-glow: rgba(0, 212, 255, 0.15);
+  --accent-glow-strong: rgba(0, 212, 255, 0.35);
 
-  --success: #65a30d; /* Yaprak yeşili */
-  --success-glow: rgba(101, 163, 13, 0.15);
-  --danger: #b91c1c; /* Kiremit / Koyu kırmızı */
-  --danger-glow: rgba(185, 28, 28, 0.15);
-  --warning: #d97706; /* Kehribar / Toprak sarısı */
-  --warning-glow: rgba(217, 119, 6, 0.15);
-  --info: #c2a278; /* Kum Kahverengisi (Sand Brown) */
-  --info-glow: rgba(194, 162, 120, 0.15);
+  --success: #00ff88;
+  --success-glow: rgba(0, 255, 136, 0.15);
+  --danger: #ff4444;
+  --danger-glow: rgba(255, 68, 68, 0.15);
+  --warning: #ffaa00;
+  --warning-glow: rgba(255, 170, 0, 0.15);
+  --info: #6e8efb;
+  --info-glow: rgba(110, 142, 251, 0.15);
 
-  --text-primary: #f5f5f4; /* Taş beyazı */
-  --text-secondary: #a8a29e;
-  --text-muted: #78716c;
-  --text-accent: #40a080;
+  --text-primary: #f0f4ff;
+  --text-secondary: #8892a8;
+  --text-muted: #555f75;
+  --text-accent: #00d4ff;
 
   --border: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(194, 162, 120, 0.3);
+  --border-hover: rgba(0, 212, 255, 0.3);
   --border-subtle: rgba(255, 255, 255, 0.04);
-}
 
-[data-theme='light'] {
-  /* ── Colors (Light Earth Theme) ── */
-  --bg-primary: #fcfbf9; /* Açık kum rengi */
-  --bg-secondary: #f3f0ea;
-  --bg-card: #ffffff;
-  --bg-card-hover: #faf8f5;
-  --bg-surface: #f7f5f0;
-  --bg-input: #ffffff;
-
-  --accent: #2d7a60; 
-  --accent-dark: #1b4d3c;
-  --accent-glow: rgba(45, 122, 96, 0.15);
-  --accent-glow-strong: rgba(45, 122, 96, 0.35);
-
-  --success: #4d7c0f;
-  --success-glow: rgba(77, 124, 15, 0.15);
-  --danger: #991b1b;
-  --danger-glow: rgba(153, 27, 27, 0.15);
-  --warning: #b45309;
-  --warning-glow: rgba(180, 83, 9, 0.15);
-  --info: #a07d50; /* Koyu Kum Kahvesi */
-  --info-glow: rgba(160, 125, 80, 0.15);
-
-  --text-primary: #292524;
-  --text-secondary: #57534e;
-  --text-muted: #78716c;
-  --text-accent: #2d7a60;
-
-  --border: rgba(0, 0, 0, 0.08);
-  --border-hover: rgba(160, 125, 80, 0.3);
-  --border-subtle: rgba(0, 0, 0, 0.04);
-}
-
-:root {
   /* ── Spacing Scale ── */
   --space-xs: 0.25rem;   /* 4px */
   --space-sm: 0.5rem;    /* 8px */
@@ -909,24 +873,3 @@ body::before {
   }
 }
 
-
-.main-content {
-  margin-left: var(--sidebar-width);
-  margin-top: var(--navbar-height);
-  min-height: calc(100vh - var(--navbar-height));
-}
-
-.main-container {
-  padding: var(--space-xl);
-  max-width: 1440px;
-}
-
-@media (max-width: 900px) {
-  .main-content {
-    margin-left: 0;
-    margin-bottom: 64px; /* for mobile nav */
-  }
-  .main-container {
-    padding: var(--space-md);
-  }
-}

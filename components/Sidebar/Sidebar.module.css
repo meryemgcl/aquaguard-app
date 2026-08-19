@@ -39,7 +39,7 @@
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, #40a080, #c2a278);
+  background: linear-gradient(135deg, #00d4ff, #6e8efb);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -194,10 +194,4 @@
   font-size: 0.7rem;
   color: var(--text-muted);
   white-space: nowrap;
-}
-
-@media (max-width: 900px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
 }

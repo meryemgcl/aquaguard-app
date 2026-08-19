@@ -5,7 +5,6 @@ import { ReactNode } from 'react';
 import Sidebar from '@/components/Sidebar/Sidebar';
 import Navbar from '@/components/Navbar/Navbar';
 import { PUBLIC_ROUTES } from '@/lib/types';
-import MobileNav from '@/components/MobileNav/MobileNav';
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -21,12 +20,22 @@ export default function AppShell({ children }: { children: ReactNode }) {
     <>
       <Sidebar />
       <Navbar />
-      <main className="main-content">
-        <div className="main-container">
+      <main
+        style={{
+          marginLeft: 'var(--sidebar-width)',
+          marginTop: 'var(--navbar-height)',
+          minHeight: 'calc(100vh - var(--navbar-height))',
+        }}
+      >
+        <div
+          style={{
+            padding: 'var(--space-xl)',
+            maxWidth: '1440px',
+          }}
+        >
           {children}
         </div>
       </main>
-      <MobileNav />
     </>
   );
 }
