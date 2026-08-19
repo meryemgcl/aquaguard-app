@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './AiAnalysis.module.css';
+import { trackEvent } from '@/lib/mixpanel';
 
 /* ── Types ── */
 interface Anomaly {
@@ -105,6 +106,8 @@ export default function AiAnalysisClient() {
     setMessages(prev => [...prev, userMsg]);
     setChatInput('');
     setChatLoading(true);
+
+    trackEvent('AI_Chat_Requested', { query: userMsg.text });
 
     try {
       const res = await fetch('/api/v2/ai/chat', {
@@ -257,7 +260,10 @@ export default function AiAnalysisClient() {
             {results.map((r, i) => (
               <button key={i}
                 className={`${styles.locationCard} ${i === selected ? styles.locationActive : ''}`}
-                onClick={() => setSelected(i)}
+                onClick={() => {
+                  setSelected(i);
+                  trackEvent('AI_Result_Viewed', { location: r.sample.location, riskLevel: r.result.riskLevel });
+                }}
               >
                 <div className={styles.locationTop}>
                   <span className={styles.locationName}>{r.sample.location}</span>
