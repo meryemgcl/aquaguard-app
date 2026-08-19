@@ -12,8 +12,18 @@ Mevcut izleme noktaları:
 - Gediz Havzası (İzmir): Ağır Metal 0.21 mg/L (UYARI), Orta Risk
 - Melen Çayı (Düzce): Tüm parametreler normal, Düşük Risk`
 
+import { verifyToken } from '@/lib/auth'
+
 export async function POST(req: NextRequest) {
   try {
+    const token = req.cookies.get('token')?.value;
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    const payload = await verifyToken(token);
+    if (!payload || !['admin', 'super_admin', 'uzman'].includes(payload.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { message } = await req.json()
     if (!message) return NextResponse.json({ error: 'Mesaj gerekli' }, { status: 400 })
 

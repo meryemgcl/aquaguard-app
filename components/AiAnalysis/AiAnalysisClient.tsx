@@ -82,7 +82,7 @@ export default function AiAnalysisClient() {
 
   /* Fetch all analyses */
   useEffect(() => {
-    fetch('/api/ai/analyze')
+    fetch('/api/v2/ai/analyze')
       .then(r => r.json())
       .then(d => { if (d.success) setResults(d.results); })
       .catch(console.error)
@@ -107,7 +107,7 @@ export default function AiAnalysisClient() {
     setChatLoading(true);
 
     try {
-      const res = await fetch('/api/ai/chat', {
+      const res = await fetch('/api/v2/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMsg.text }),

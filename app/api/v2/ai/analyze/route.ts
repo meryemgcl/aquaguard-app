@@ -65,8 +65,18 @@ function analyzeLocally(params: Record<string, number>) {
   }
 }
 
+import { verifyToken } from '@/lib/auth'
+
 /* GET — Tüm demo analizleri döndür */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const token = req.cookies.get('token')?.value;
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  
+  const payload = await verifyToken(token);
+  if (!payload || !['admin', 'super_admin', 'uzman'].includes(payload.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const results = DEMO_SAMPLES.map(sample => ({
     sample,
     result: analyzeLocally(sample.params),
@@ -77,6 +87,14 @@ export async function GET() {
 /* POST — Tekil rapor analizi (Kanban kartlarından) */
 export async function POST(req: NextRequest) {
   try {
+    const token = req.cookies.get('token')?.value;
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    const payload = await verifyToken(token);
+    if (!payload || !['admin', 'super_admin', 'uzman'].includes(payload.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { description } = await req.json()
     if (!description) return NextResponse.json({ error: 'Açıklama zorunludur.' }, { status: 400 })
     const result = await analyzeReport(description)

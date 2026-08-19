@@ -102,7 +102,7 @@ export default function KanbanCardComponent({
     setAiResult(null);
     setAiLoading(true);
     try {
-      const res = await fetch('/api/ai/analyze', {
+      const res = await fetch('/api/v2/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
