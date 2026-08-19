@@ -7,7 +7,7 @@ const PUBLIC_ROUTES = ['/login', '/register'];
 // We need to use `jose` inside middleware because it's Edge compatible
 const getSecret = () => new TextEncoder().encode(process.env.JWT_SECRET || 'aquaguard-super-secret-key-2026');
 
-export async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Skip API routes, static files, and Next.js internal paths
