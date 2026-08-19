@@ -23,13 +23,13 @@
 .pageTitle {
   font-size: 1.3rem;
   font-weight: 700;
-  color: #f0f4ff;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.pageSubtitle { font-size: 0.82rem; color: #8892a8; margin-top: 0.2rem; }
+.pageSubtitle { font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem; }
 
 .filterBar { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 
@@ -37,11 +37,11 @@
   display: flex; align-items: center; gap: 0.35rem;
   padding: 0.4rem 0.8rem; border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03);
-  color: #8892a8; font-size: 0.78rem; font-weight: 500;
+  color: var(--text-secondary); font-size: 0.78rem; font-weight: 500;
   cursor: pointer; font-family: inherit; transition: all 0.2s;
 }
 .filterBtn:hover { border-color: rgba(255,255,255,0.14); color: #c8d0e0; }
-.filterActive { background: rgba(0,212,255,0.08); border-color: rgba(0,212,255,0.25); color: #00d4ff; }
+.filterActive { background: var(--accent-glow); border-color: var(--accent-glow-strong); color: var(--accent); }
 
 .filterCount {
   font-size: 0.65rem; font-weight: 700;
@@ -65,7 +65,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8892a8;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
@@ -124,7 +124,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 4px;
   font-size: 0.7rem;
-  color: #8892a8;
+  color: var(--text-secondary);
 }
 
 .markerDate {

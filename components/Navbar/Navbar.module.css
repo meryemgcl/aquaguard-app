@@ -304,3 +304,24 @@
   background: rgba(255, 68, 68, 0.1);
   color: #ff4444;
 }
+
+@media (max-width: 900px) {
+  .navbar {
+    left: 0;
+    padding: 0 var(--space-md);
+  }
+  .searchInput {
+    width: 0;
+    padding: 0;
+    opacity: 0;
+  }
+  .searchIcon {
+    display: none;
+  }
+  .right {
+    gap: var(--space-sm);
+  }
+  .pageTitle {
+    font-size: 1rem;
+  }
+}
