@@ -14,6 +14,7 @@ import KanbanCardComponent from './KanbanCard';
 import ApprovalModal from './ApprovalModal';
 import CardDetailModal from './CardDetailModal';
 import styles from './Kanban.module.css';
+import { trackEvent } from '@/lib/mixpanel';
 
 type ModalState =
   | { type: 'approve'; card: KanbanCard }
@@ -118,6 +119,8 @@ export default function KanbanBoard() {
         column: targetColumn,
         updatedAt: new Date().toISOString(),
       });
+      
+      trackEvent('Kanban_Card_Moved', { cardId, from: originCol, to: targetColumn });
     } catch (err) {
       console.error('Firebase yazma hatası:', err);
       // Hata olursa orijinal konuma geri döndür

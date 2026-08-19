@@ -7,6 +7,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { KanbanCard } from '@/lib/kanban';
 import { geocodeLocation, riskScoreToColor } from '@/lib/geocode';
 import styles from './MapPage.module.css';
+import { trackEvent } from '@/lib/mixpanel';
 
 const WaterMap = dynamic(() => import('@/components/Dashboard/WaterMap'), {
   ssr: false,
@@ -116,7 +117,7 @@ export default function MapPageClient() {
               <button
                 key={f}
                 className={`${styles.filterBtn} ${filter === f ? styles.filterActive : ''}`}
-                onClick={() => setFilter(f)}
+                onClick={() => { setFilter(f); trackEvent('Map_Filter_Used', { filterLevel: f }); }}
               >
                 {labels[f]}
                 <span className={styles.filterCount}>{counts[f]}</span>
@@ -167,3 +168,4 @@ export default function MapPageClient() {
     </div>
   );
 }
+

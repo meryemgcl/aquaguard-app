@@ -14,6 +14,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+import { identifyUser, resetUser } from '@/lib/mixpanel';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SafeUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +31,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (data.success && data.user) {
         setUser(data.user);
+        identifyUser(data.user.id, {
+          $email: data.user.email,
+          $name: data.user.name,
+          Role: data.user.role,
+        });
       } else {
         setUser(null);
       }
@@ -51,6 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data.success && data.user) {
         setUser(data.user);
+        identifyUser(data.user.id, {
+          $email: data.user.email,
+          $name: data.user.name,
+          Role: data.user.role,
+        });
         return { success: true, message: data.message };
       }
       return { success: false, message: data.message || 'Giriş başarısız.' };
@@ -71,6 +83,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data.success && data.user) {
         setUser(data.user);
+        identifyUser(data.user.id, {
+          $email: data.user.email,
+          $name: data.user.name,
+          Role: data.user.role,
+        });
         return { success: true, message: data.message };
       }
       return { success: false, message: data.message || 'Kayıt başarısız.' };
@@ -83,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     await fetch('/api/auth/me', { method: 'POST' });
     setUser(null);
+    resetUser();
     window.location.href = '/login';
   };
 
