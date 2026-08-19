@@ -1,0 +1,44 @@
+.mobileNav {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .mobileNav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border);
+    z-index: 1000;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .navItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.65rem;
+    font-weight: 500;
+    flex: 1;
+    height: 100%;
+    transition: color 0.2s;
+  }
+
+  .navItem.active {
+    color: var(--accent);
+  }
+
+  .icon {
+    width: 20px;
+    height: 20px;
+  }
+}

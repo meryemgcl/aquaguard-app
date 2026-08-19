@@ -24,13 +24,13 @@
 .boardTitle {
   font-size: 1.4rem;
   font-weight: 700;
-  color: #f0f4ff;
+  color: var(--text-primary);
   letter-spacing: -0.02em;
 }
 
 .boardSubtitle {
   font-size: 0.82rem;
-  color: #8892a8;
+  color: var(--text-secondary);
   margin-top: 0.25rem;
 }
 
@@ -50,7 +50,7 @@
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 20px;
   font-size: 0.78rem;
-  color: #8892a8;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -187,7 +187,7 @@
 
 .emptyCol p {
   font-size: 0.8rem;
-  color: #555f75;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -320,11 +320,11 @@
   align-items: center;
   gap: 0.3rem;
   font-size: 0.75rem;
-  color: #555f75;
+  color: var(--text-muted);
 }
 
 .cardLocation svg {
-  color: #00d4ff;
+  color: var(--accent);
   flex-shrink: 0;
 }
 
@@ -358,11 +358,11 @@
   align-items: center;
   gap: 0.3rem;
   font-size: 0.7rem;
-  color: #555f75;
+  color: var(--text-muted);
 }
 
 .cardDate svg {
-  color: #8892a8;
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
@@ -394,7 +394,7 @@
   justify-content: center;
   gap: 1rem;
   min-height: 400px;
-  color: #8892a8;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
@@ -402,7 +402,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid rgba(255, 255, 255, 0.06);
-  border-top-color: #00d4ff;
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -450,7 +450,7 @@
   border-radius: 6px;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
-  color: #555f75;
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s;
   padding: 0;
@@ -459,7 +459,7 @@
 .detailBtn:hover {
   background: rgba(0,212,255,0.1);
   border-color: rgba(0,212,255,0.25);
-  color: #00d4ff;
+  color: var(--accent);
 }
 
 /* ── Approval history indicator ── */
@@ -489,7 +489,7 @@
 
 .approvalCount {
   font-size: 0.65rem;
-  color: #555f75;
+  color: var(--text-muted);
   font-weight: 500;
 }
 

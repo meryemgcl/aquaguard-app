@@ -23,9 +23,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const savedTheme = localStorage.getItem('aquaguard-theme') as Theme;
     if (savedTheme) {
       setTheme(savedTheme);
-      if (savedTheme === 'light') {
-        document.documentElement.classList.add('light-theme');
-      }
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
     }
   }, []);
 
@@ -33,13 +33,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme((prev) => {
       const newTheme = prev === 'dark' ? 'light' : 'dark';
       localStorage.setItem('aquaguard-theme', newTheme);
-      
-      if (newTheme === 'light') {
-        document.documentElement.classList.add('light-theme');
-      } else {
-        document.documentElement.classList.remove('light-theme');
-      }
-      
+      document.documentElement.setAttribute('data-theme', newTheme);
       return newTheme;
     });
   };
