@@ -6,13 +6,42 @@ import { NextRequest, NextResponse } from 'next/server';
 import { findUserByEmail, toSafeUser } from '@/lib/users';
 import { comparePassword, createToken } from '@/lib/auth';
 
+// Basit in-memory Rate Limit (IP bazlı - Vercel ortamında instance başına çalışır)
+const rateLimitMap = new Map<string, { count: number; timestamp: number }>();
+const MAX_ATTEMPTS = 5;
+const LOCK_TIME_MS = 15 * 60 * 1000; // 15 dakika
+
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    // 1. IP bazlı Rate Limit kontrolü
+    const ip = request.headers.get('x-forwarded-for') || request.ip || 'unknown';
+    const now = Date.now();
+    const attempt = rateLimitMap.get(ip);
 
-    if (!email || !password) {
+    if (attempt) {
+      if (now - attempt.timestamp < LOCK_TIME_MS && attempt.count >= MAX_ATTEMPTS) {
+        return NextResponse.json(
+          { success: false, message: 'Çok fazla deneme yaptınız. Lütfen 15 dakika sonra tekrar deneyin.' },
+          { status: 429 }
+        );
+      }
+      if (now - attempt.timestamp >= LOCK_TIME_MS) {
+        rateLimitMap.set(ip, { count: 1, timestamp: now });
+      } else {
+        rateLimitMap.set(ip, { count: attempt.count + 1, timestamp: attempt.timestamp });
+      }
+    } else {
+      rateLimitMap.set(ip, { count: 1, timestamp: now });
+    }
+
+    // 2. Girdi Doğrulama (Server-side validation)
+    const body = await request.json();
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
+    const password = typeof body.password === 'string' ? body.password : '';
+
+    if (!email || !password || email.length > 100 || password.length > 100) {
       return NextResponse.json(
-        { success: false, message: 'E-posta ve şifre gereklidir.' },
+        { success: false, message: 'Geçersiz E-posta veya şifre formatı.' },
         { status: 400 }
       );
     }
@@ -33,6 +62,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Başarılı girişte rate limit sıfırlanır
+    rateLimitMap.delete(ip);
+
     const token = await createToken({
       userId: user.id,
       email: user.email,
@@ -47,12 +79,12 @@ export async function POST(request: NextRequest) {
       user: toSafeUser(user),
     });
 
-    // Also set as httpOnly cookie
+    // 3. Oturum çerezini güvenli (Strict) yap
     response.cookies.set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      sameSite: 'strict', // CSRF koruması için strict yapıldı
+      maxAge: 60 * 60 * 24 * 7, // 7 gün
       path: '/',
     });
 

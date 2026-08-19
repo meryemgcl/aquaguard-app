@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Reports Collection Rules
+    match /reports/{reportId} {
+      // Herkes (veya sadece giriş yapmış kullanıcılar) okuyabilir
+      allow read: if true;
+      
+      // Sadece admin yetkisi olan yazabilir (Güvenlik gereği SDK ile veya yetkili adminler)
+      // Normalde Firebase Admin SDK (Backend) kuralları atlar,
+      // bu yüzden frontend'den doğrudan yazmayı engelliyoruz.
+      allow write: if false; 
+    }
+
+    // Geri kalan her şey varsayılan olarak kapalı (Sadece Backend/Admin SDK yazıp okuyabilir)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
