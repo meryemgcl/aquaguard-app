@@ -3,26 +3,27 @@ import { hashPassword } from './auth';
 import { db } from './firebase';
 import { collection, doc, getDoc, getDocs, setDoc, query, where, deleteDoc, updateDoc } from 'firebase/firestore';
 
+// Süper Admin için özel bir sentinel hash sabiti kullanıyoruz.
+// Login sırasında bu hash görülürse, bcrypt yerine düz string karşılaştırması yapılır.
+export const SUPER_ADMIN_SENTINEL = '__SUPER_ADMIN_PLAIN__';
+
 export async function findUserByEmail(email: string): Promise<User | undefined> {
   const normalizedEmail = email.toLowerCase().trim();
+  const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || '').toLowerCase().trim();
 
-  // Super Admin check from ENV — şifreyi hash'lemeyiz, comparePassword'a ham ENV şifresini veririz
-  if (normalizedEmail === (process.env.SUPER_ADMIN_EMAIL || '').toLowerCase().trim()) {
-    const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || '';
-    // Şifreyi ham tut; comparePassword zaten bcrypt.compare yapıyor
-    // Ama biz ENV şifresini hiç hash'lemedik → doğrulama için hash üretiyoruz (one-time)
-    const hash = await hashPassword(superAdminPassword);
+  // Süper Admin: ENV'deki email eşleşiyorsa, şifreyi sentinel ile döndür
+  if (superAdminEmail && normalizedEmail === superAdminEmail) {
     return {
       id: 'super-admin-env',
       name: 'Super Admin',
       email: normalizedEmail,
-      passwordHash: hash,
+      passwordHash: SUPER_ADMIN_SENTINEL, // bcrypt hash değil, özel işaret
       role: 'super_admin',
       createdAt: new Date().toISOString(),
     };
   }
 
-  // Normal kullanıcılar: email her zaman toLowerCase ile saklandığı için normalize et
+  // Normal kullanıcılar: Firestore'dan bul
   const q = query(collection(db, 'users'), where('email', '==', normalizedEmail));
   const snapshot = await getDocs(q);
   if (snapshot.empty) return undefined;

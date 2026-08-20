@@ -3,7 +3,7 @@
    ============================================================ */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { findUserByEmail, toSafeUser } from '@/lib/users';
+import { findUserByEmail, toSafeUser, SUPER_ADMIN_SENTINEL } from '@/lib/users';
 import { comparePassword, createToken } from '@/lib/auth';
 
 // Basit in-memory Rate Limit (IP bazlı - Vercel ortamında instance başına çalışır)
@@ -54,7 +54,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isValid = await comparePassword(password, user.passwordHash);
+    // Şifre doğrulama: Süper Admin için sentinel kontrolü, normal kullanıcılar için bcrypt
+    let isValid = false;
+    if (user.passwordHash === SUPER_ADMIN_SENTINEL) {
+      // Süper Admin: ENV şifresiyle düz karşılaştır
+      isValid = password === (process.env.SUPER_ADMIN_PASSWORD || '');
+    } else {
+      isValid = await comparePassword(password, user.passwordHash);
+    }
+
     if (!isValid) {
       return NextResponse.json(
         { success: false, message: 'E-posta veya şifre hatalı.' },
