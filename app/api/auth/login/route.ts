@@ -14,7 +14,7 @@ const LOCK_TIME_MS = 15 * 60 * 1000; // 15 dakika
 export async function POST(request: NextRequest) {
   try {
     // 1. IP bazlı Rate Limit kontrolü
-    const ip = request.headers.get('x-forwarded-for') || request.ip || 'unknown';
+    const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown';
     const now = Date.now();
     const attempt = rateLimitMap.get(ip);
 
