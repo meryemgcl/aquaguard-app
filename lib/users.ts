@@ -4,23 +4,29 @@ import { db } from './firebase';
 import { collection, doc, getDoc, getDocs, setDoc, query, where, deleteDoc, updateDoc } from 'firebase/firestore';
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
-  // Super Admin check from ENV
-  if (email === process.env.SUPER_ADMIN_EMAIL) {
-    const hash = await hashPassword(process.env.SUPER_ADMIN_PASSWORD || 'super123');
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Super Admin check from ENV — şifreyi hash'lemeyiz, comparePassword'a ham ENV şifresini veririz
+  if (normalizedEmail === (process.env.SUPER_ADMIN_EMAIL || '').toLowerCase().trim()) {
+    const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || '';
+    // Şifreyi ham tut; comparePassword zaten bcrypt.compare yapıyor
+    // Ama biz ENV şifresini hiç hash'lemedik → doğrulama için hash üretiyoruz (one-time)
+    const hash = await hashPassword(superAdminPassword);
     return {
       id: 'super-admin-env',
       name: 'Super Admin',
-      email: email,
+      email: normalizedEmail,
       passwordHash: hash,
       role: 'super_admin',
       createdAt: new Date().toISOString(),
     };
   }
 
-  const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
+  // Normal kullanıcılar: email her zaman toLowerCase ile saklandığı için normalize et
+  const q = query(collection(db, 'users'), where('email', '==', normalizedEmail));
   const snapshot = await getDocs(q);
   if (snapshot.empty) return undefined;
-  
+
   const docSnap = snapshot.docs[0];
   return { id: docSnap.id, ...docSnap.data() } as User;
 }
