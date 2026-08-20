@@ -91,7 +91,8 @@ const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
 };
 
 /** Türkçe karakterleri Latin'e çevirir */
-function turkishToLatin(text: string): string {
+function turkishToLatin(text: string | undefined | null): string {
+  if (!text || typeof text !== 'string') return '';
   return text
     .toLowerCase()
     .replace(/ğ/g, 'g')
@@ -107,7 +108,8 @@ function turkishToLatin(text: string): string {
  * Örnek: "Erzurum, Türkiye" → { lat: 39.90, lng: 41.27 }
  * Bulunamazsa Türkiye merkezi döner.
  */
-export function geocodeLocation(location: string): { lat: number; lng: number } {
+export function geocodeLocation(location: string | undefined | null): { lat: number; lng: number } {
+  if (!location) return { lat: 39.92, lng: 32.85 }; // Ankara (varsayılan merkez)
   const normalized = turkishToLatin(location);
 
   for (const [city, coords] of Object.entries(CITY_COORDS)) {

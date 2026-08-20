@@ -101,8 +101,8 @@ export default function DashboardClient() {
   useEffect(() => {
     if (!data || fbCards.length === 0) return;
     const fbMarkers: MapMarker[] = fbCards.map((card) => {
-      const coords = geocodeLocation(card.location);
-      const { riskColor } = riskScoreToColor(card.riskScore);
+      const coords = geocodeLocation(card.location ?? '');
+      const { riskColor } = riskScoreToColor(card.riskScore ?? 0);
       return {
         id: `report-${card.id}`,
         location: card.location,
