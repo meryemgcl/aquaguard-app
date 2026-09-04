@@ -4,6 +4,8 @@
 
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
+import speakeasy from 'speakeasy';
+import QRCode from 'qrcode';
 import { JWTPayload } from './types';
 
 const getSecret = () => new TextEncoder().encode(process.env.JWT_SECRET || 'aquaguard-super-secret-key-2026');
@@ -43,4 +45,52 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function comparePassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
+}
+
+/* ── Two-Factor Authentication (2FA) ── */
+
+export function generateTwoFactorSecret(email: string): { secret: string; qrCode: string } {
+  const secret = speakeasy.generateSecret({
+    name: `AquaGuard (${email})`,
+    issuer: 'AquaGuard',
+  });
+
+  return {
+    secret: secret.base32,
+    qrCode: secret.otpauth_url || '',
+  };
+}
+
+export async function generateQRCodeDataUrl(otpauthUrl: string): Promise<string> {
+  return QRCode.toDataURL(otpauthUrl);
+}
+
+export function verifyTwoFactorToken(secret: string, token: string): boolean {
+  return speakeasy.totp.verify({
+    secret,
+    encoding: 'base32',
+    token,
+    window: 2, // Allow ±2 time windows (30 seconds each)
+  });
+}
+
+export function generateBackupCodes(count: number = 10): string[] {
+  const codes: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+    codes.push(code);
+  }
+  return codes;
+}
+
+export async function hashBackupCodes(codes: string[]): Promise<string[]> {
+  return Promise.all(codes.map(code => bcrypt.hash(code, 10)));
+}
+
+export async function verifyBackupCode(code: string, hashedCodes: string[]): Promise<boolean> {
+  for (const hashedCode of hashedCodes) {
+    const match = await bcrypt.compare(code, hashedCode);
+    if (match) return true;
+  }
+  return false;
 }
