@@ -12,6 +12,9 @@ export interface User {
   role: UserRole;
   avatar?: string;
   createdAt: string;
+  twoFactorEnabled?: boolean;
+  twoFactorSecret?: string;
+  backupCodes?: string[];
 }
 
 export interface SafeUser {
@@ -21,6 +24,7 @@ export interface SafeUser {
   role: UserRole;
   avatar?: string;
   createdAt: string;
+  twoFactorEnabled?: boolean;
 }
 
 export interface JWTPayload {
@@ -28,6 +32,8 @@ export interface JWTPayload {
   email: string;
   role: UserRole;
   name: string;
+  twoFactorVerified?: boolean;
+  twoFactorChallenge?: boolean;
 }
 
 export interface AuthResponse {

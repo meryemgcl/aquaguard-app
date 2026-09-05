@@ -3,8 +3,11 @@
    ============================================================ */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { SignJWT } from 'jose';
 import { findUserByEmail, toSafeUser, SUPER_ADMIN_SENTINEL } from '@/lib/users';
 import { comparePassword, createToken } from '@/lib/auth';
+
+const getSecret = () => new TextEncoder().encode(process.env.JWT_SECRET || 'aquaguard-super-secret-key-2026');
 
 // Basit in-memory Rate Limit (IP bazlı - Vercel ortamında instance başına çalışır)
 const rateLimitMap = new Map<string, { count: number; timestamp: number }>();
@@ -73,11 +76,36 @@ export async function POST(request: NextRequest) {
     // Başarılı girişte rate limit sıfırlanır
     rateLimitMap.delete(ip);
 
+    // Check if 2FA is enabled
+    if (user.twoFactorEnabled) {
+      // Create temporary token (expires in 5 minutes)
+      const tempToken = await new SignJWT({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        twoFactorVerified: false,
+        twoFactorChallenge: true,
+      } as any)
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('5m')
+        .sign(getSecret());
+
+      return NextResponse.json({
+        success: true,
+        message: '2FA kodu gerekmektedir.',
+        requiresTwoFactor: true,
+        tempToken,
+      }, { status: 200 });
+    }
+
     const token = await createToken({
       userId: user.id,
       email: user.email,
       role: user.role,
       name: user.name,
+      twoFactorVerified: true,
     });
 
     const response = NextResponse.json({

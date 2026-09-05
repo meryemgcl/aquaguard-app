@@ -89,8 +89,9 @@ export async function updateUser(id: string, updates: Partial<User>): Promise<Sa
   if (!docSnap.exists()) return undefined;
 
   let finalUpdates = { ...updates };
-  if (updates.passwordHash) {
-     finalUpdates.passwordHash = await hashPassword(updates.passwordHash);
+  if (updates.passwordHash && typeof updates.passwordHash === 'string' && !updates.passwordHash.startsWith('$2')) {
+    // Only hash if it's not already hashed (doesn't start with bcrypt prefix)
+    finalUpdates.passwordHash = await hashPassword(updates.passwordHash);
   }
 
   await updateDoc(docRef, finalUpdates);
