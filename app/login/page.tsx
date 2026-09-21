@@ -35,12 +35,6 @@ function LoginForm() {
     setLoading(false);
   };
 
-  const fillDemo = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('123456');
-    setError('');
-  };
-
   return (
     <div className={styles.authPage}>
       {/* Animated Background */}
@@ -156,27 +150,8 @@ function LoginForm() {
             </button>
           </form>
 
-          <div className={styles.divider}>
-            <span>Demo Hesaplar</span>
-          </div>
-
-          <div className={styles.demoAccounts}>
-            <button className={styles.demoBtn} onClick={() => fillDemo('admin@aquaguard.com')}>
-              <span className={styles.demoDot} style={{ background: '#00d4ff' }} />
-              Admin
-            </button>
-            <button className={styles.demoBtn} onClick={() => fillDemo('ayse@aquaguard.com')}>
-              <span className={styles.demoDot} style={{ background: '#6e8efb' }} />
-              Uzman
-            </button>
-            <button className={styles.demoBtn} onClick={() => fillDemo('mehmet@aquaguard.com')}>
-              <span className={styles.demoDot} style={{ background: '#00ff88' }} />
-              Yönetici
-            </button>
-            <button className={styles.demoBtn} onClick={() => fillDemo('halk@aquaguard.com')}>
-              <span className={styles.demoDot} style={{ background: '#8892a8' }} />
-              Halk
-            </button>
+          <div className={styles.infoBox}>
+            <p>Sisteme giriş için lütfen yöneticinizden hesap bilgilerinizi alın.</p>
           </div>
 
           <p className={styles.switchAuth}>

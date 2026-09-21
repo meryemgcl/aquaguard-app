@@ -115,11 +115,11 @@ export async function POST(request: NextRequest) {
       user: toSafeUser(user),
     });
 
-    // 3. Oturum çerezini güvenli (Strict) yap
+    // 3. Oturum çerezini yönlendirmeler arasında gönderilecek şekilde ayarla
     response.cookies.set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict', // CSRF koruması için strict yapıldı
+      sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 gün
       path: '/',
     });

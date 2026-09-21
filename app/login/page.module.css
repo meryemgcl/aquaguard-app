@@ -333,63 +333,12 @@
   to { transform: rotate(360deg); }
 }
 
-/* ── Divider ── */
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin: 1.5rem 0 1rem;
-  color: #555f75;
-  font-size: 0.78rem;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-/* ── Demo Accounts ── */
-.demoAccounts {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.demoBtn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.6rem 0.4rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+/* ── Account Information ── */
+.infoBox {
+  margin-top: 16px;
   color: #8892a8;
-  font-size: 0.72rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-}
-
-.demoBtn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #f0f4ff;
-  transform: translateY(-2px);
-}
-
-.demoDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  box-shadow: 0 0 8px currentColor;
+  font-size: 0.8rem;
+  text-align: center;
 }
 
 /* ── Switch Auth Link ── */
@@ -430,8 +379,5 @@
 @media (max-width: 480px) {
   .authCard {
     padding: 1.75rem 1.25rem;
-  }
-  .demoAccounts {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
