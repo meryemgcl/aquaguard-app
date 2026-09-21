@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import './globals.css';
 import { AuthProvider } from '@/components/AuthProvider/AuthProvider';
 import AppShell from '@/components/AppShell/AppShell';
+import ErrorBoundary from '@/components/ErrorBoundary/ErrorBoundary';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/ThemeProvider/ThemeProvider';
 import MixpanelProvider from '@/components/MixpanelProvider/MixpanelProvider';
@@ -37,7 +38,9 @@ export default function RootLayout({
           <Suspense fallback={null}>
             <MixpanelProvider>
               <AuthProvider>
-                <AppShell>{children}</AppShell>
+                <ErrorBoundary>
+                  <AppShell>{children}</AppShell>
+                </ErrorBoundary>
               </AuthProvider>
               <Toaster richColors position="top-right" />
             </MixpanelProvider>

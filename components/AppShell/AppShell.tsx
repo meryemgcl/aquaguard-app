@@ -5,6 +5,7 @@ import { ReactNode } from 'react';
 import Sidebar from '@/components/Sidebar/Sidebar';
 import Navbar from '@/components/Navbar/Navbar';
 import { PUBLIC_ROUTES } from '@/lib/types';
+import styles from './AppShell.module.css';
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -20,13 +21,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     <>
       <Sidebar />
       <Navbar />
-      <main
-        style={{
-          marginLeft: 'var(--sidebar-width)',
-          marginTop: 'var(--navbar-height)',
-          minHeight: 'calc(100vh - var(--navbar-height))',
-        }}
-      >
+      <main className={styles.main}>
         <div
           style={{
             padding: 'var(--space-xl)',
