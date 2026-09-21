@@ -9,6 +9,7 @@ export const SUPER_ADMIN_SENTINEL = '__SUPER_ADMIN_PLAIN__';
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
   const normalizedEmail = email.toLowerCase().trim();
+  console.log('[DEBUG FIND USER]', { normalizedEmail, superAdminEmail: (process.env.SUPER_ADMIN_EMAIL || '').toLowerCase().trim() });
   const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || '').toLowerCase().trim();
 
   // Süper Admin: ENV'deki email eşleşiyorsa, şifreyi sentinel ile döndür

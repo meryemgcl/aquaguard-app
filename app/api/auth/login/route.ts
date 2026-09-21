@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await findUserByEmail(email);
+    console.log('[DEBUG LOGIN]', { email, foundUser: !!user, envEmail: process.env.SUPER_ADMIN_EMAIL, envPassSet: !!process.env.SUPER_ADMIN_PASSWORD });
     if (!user) {
       return NextResponse.json(
         { success: false, message: 'E-posta veya şifre hatalı.' },
