@@ -1,19 +1,42 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Reports Collection Rules
-    match /reports/{reportId} {
-      // Herkes (veya sadece giriş yapmış kullanıcılar) okuyabilir
-      allow read: if true;
-      
-      // Sadece admin yetkisi olan yazabilir (Güvenlik gereği SDK ile veya yetkili adminler)
-      // Normalde Firebase Admin SDK (Backend) kuralları atlar,
-      // bu yüzden frontend'den doğrudan yazmayı engelliyoruz.
-      allow write: if false; 
+
+    // ── Users Koleksiyonu ──────────────────────────────────────
+    // Backend (Admin SDK) tüm yetkilere sahip (kuralları atlar)
+    // Burası sadece frontend Client SDK için geçerli
+    match /users/{userId} {
+      // Kayıt: herkes yeni kullanıcı oluşturabilir (register akışı)
+      allow create: if true;
+      // Okuma: sadece kendi profilini okuyabilir (şu an backend'den yapılıyor)
+      allow read: if false;
+      // Güncelleme/silme: sadece Admin SDK üzerinden (backend)
+      allow update, delete: if false;
     }
 
-    // Geri kalan her şey varsayılan olarak kapalı (Sadece Backend/Admin SDK yazıp okuyabilir)
+    // ── Reports (Kanban Kartları) Koleksiyonu ─────────────────
+    match /reports/{reportId} {
+      // Herkes okuyabilir (harita ve dashboard için)
+      allow read: if true;
+      // Yazma: şimdilik açık (geliştirme aşaması)
+      // Sonraki aşamada: sadece doğrulanmış kullanıcılar
+      allow write: if true;
+    }
+
+    // ── Vatandaş İhbarları ────────────────────────────────────
+    match /citizen_reports/{reportId} {
+      allow read: if true;
+      allow create: if true;  // Herkes ihbar oluşturabilir
+      allow update, delete: if false;
+    }
+
+    // ── Kanban Cards Koleksiyonu ──────────────────────────────
+    match /kanban_cards/{cardId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // ── Diğer her şey kapalı ─────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
     }
