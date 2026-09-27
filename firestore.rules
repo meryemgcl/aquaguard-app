@@ -1,37 +1,49 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Draft for the server-only Admin SDK architecture; do not deploy until current
+    // client SDK reads/writes have been moved behind authenticated API handlers.
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-    // ── Users Koleksiyonu ──────────────────────────────────────
-    // Sunucu taraflı API (Client SDK ile) kullanıcı sorgular
+    function hasRole(roles) {
+      return isSignedIn()
+        && request.auth.token.role is string
+        && request.auth.token.role in roles;
+    }
+
+    function isStaff() {
+      return hasRole(['super_admin', 'admin', 'uzman', 'yonetici']);
+    }
+
+    // User documents contain password hashes and 2FA secrets; use Admin SDK APIs only.
     match /users/{userId} {
-      // Login ve register için okuma/oluşturma açık
-      allow read: if true;
-      allow create: if true;
-      // Güncelleme/silme backend üzerinden yapılıyor
-      allow update, delete: if false;
+      allow read, write: if false;
     }
 
-    // ── Reports (Kanban Kartları) Koleksiyonu ─────────────────
+    // Report creation and workflow mutations must go through authorized server APIs.
     match /reports/{reportId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isStaff();
+      allow create, update, delete: if false;
     }
 
-    // ── Vatandaş İhbarları ────────────────────────────────────
     match /citizen_reports/{reportId} {
-      allow read: if true;
-      allow create: if true;
-      allow update, delete: if false;
+      allow read: if isStaff();
+      allow create, update, delete: if false;
     }
 
-    // ── Kanban Cards Koleksiyonu ──────────────────────────────
     match /kanban_cards/{cardId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isStaff();
+      allow create, update, delete: if false;
     }
 
-    // ── Diğer her şey kapalı ─────────────────────────────────
+    match /approval_history/{recordId} {
+      allow read: if isStaff();
+      allow create, update, delete: if false;
+    }
+
+    // Deny every collection not explicitly listed above.
     match /{document=**} {
       allow read, write: if false;
     }

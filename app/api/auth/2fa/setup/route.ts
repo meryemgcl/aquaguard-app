@@ -44,8 +44,9 @@ export async function POST(request: NextRequest) {
       qrCodeDataUrl,
       message: 'Please scan the QR code with your authenticator app and confirm with the code',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[2FA Setup Error]', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : '2FA setup failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

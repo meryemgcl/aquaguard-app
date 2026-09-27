@@ -15,6 +15,16 @@ function resolveRecipient(email: string): string {
   return OVERRIDE || email
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character] ?? character)
+}
+
 async function sendMail(to: string, subject: string, html: string): Promise<{ ok: boolean; simulated?: boolean }> {
   const recipient = resolveRecipient(to)
 
@@ -96,14 +106,61 @@ export async function sendWelcomeMail(to: string, name: string, role: string) {
     yonetici: 'Yönetici', halk: 'Halk Kullanıcısı',
   }
   const body = `
-    ${infoText(`Merhaba <strong style="color:#00d4ff;">${name}</strong>,`)}
+    ${infoText(`Merhaba <strong style="color:#00d4ff;">${escapeHtml(name)}</strong>,`)}
     ${infoText('AquaGuard platformuna hoş geldiniz! Hesabınız başarıyla oluşturulmuştur.')}
-    ${boldRow('E-posta', to)}
-    ${boldRow('Rol', roleLabels[role] || role, '#6e8efb')}
-    ${boldRow('Şifre', '123456 (ilk girişten sonra değiştirin)', '#f59e0b')}
-    ${ctaButton('Platforma Giriş Yap', 'http://localhost:3000/login', '#00d4ff')}
+    ${boldRow('E-posta', escapeHtml(to))}
+    ${boldRow('Rol', escapeHtml(roleLabels[role] || role), '#6e8efb')}
+    ${ctaButton('Platforma Giriş Yap', `${process.env.APP_URL || 'http://localhost:3000'}/login`, '#00d4ff')}
   `
   return sendMail(to, 'AquaGuard — Hesabınız Oluşturuldu 🎉', template('Hesabınıza Hoş Geldiniz', '#00d4ff', '🌊', body))
+}
+
+const roleLabels: Record<'uzman' | 'yonetici', string> = {
+  uzman: 'Çevre Uzmanı',
+  yonetici: 'Yönetici',
+}
+
+export async function sendRoleRequestMail(to: string, name: string, role: 'uzman' | 'yonetici') {
+  const body = `${infoText(`Merhaba <strong style="color:#00d4ff;">${escapeHtml(name)}</strong>, uzman/yönetici erişim talebiniz alındı.`)}
+    ${boldRow('Talep edilen rol', roleLabels[role], '#6e8efb')}
+    ${infoText('Hesabınız yönetici incelemesi tamamlanana kadar etkinleştirilmeyecektir. Sonuç e-posta ile bildirilecektir.')}`
+  return sendMail(to, 'AquaGuard — Rol talebiniz alındı', template('Onay Bekleniyor', '#f59e0b', '⏳', body))
+}
+
+export async function sendRoleRequestAdminMail(name: string, email: string, role: 'uzman' | 'yonetici') {
+  const adminEmail = process.env.ADMIN_EMAIL
+  if (!adminEmail) {
+    console.warn('[MAIL SIMULATED] ADMIN_EMAIL tanımlı değil; rol başvurusu yöneticiye iletilemedi.')
+    return { ok: true, simulated: true }
+  }
+  const body = `${infoText('Yeni bir ayrıcalıklı rol talebi yönetici incelemesi bekliyor.')}
+    ${boldRow('Başvuran', escapeHtml(name))}
+    ${boldRow('E-posta', escapeHtml(email))}
+    ${boldRow('Talep edilen rol', roleLabels[role], '#6e8efb')}
+    ${ctaButton('Kullanıcı Yönetimi', `${process.env.APP_URL || 'http://localhost:3000'}/kullanicilar`, '#00d4ff')}`
+  return sendMail(adminEmail, 'AquaGuard — Yeni rol başvurusu', template('Yeni Rol Başvurusu', '#f59e0b', '📩', body))
+}
+
+export async function sendAccountStatusMail(
+  to: string,
+  name: string,
+  status: 'approved' | 'rejected' | 'updated',
+  role: string,
+) {
+  const roleName = roleLabels[role as keyof typeof roleLabels] ?? role
+  const body = status === 'rejected'
+    ? `${infoText(`Merhaba <strong style="color:#00d4ff;">${escapeHtml(name)}</strong>, rol başvurunuz onaylanmadı.`)}
+       ${infoText('Hesabınız vatandaş rolüyle etkin kalır. Sorularınız için destek ekibiyle iletişime geçebilirsiniz.')}`
+    : `${infoText(`Merhaba <strong style="color:#00d4ff;">${escapeHtml(name)}</strong>, ${status === 'approved' ? 'başvurunuz onaylandı.' : 'hesap rolünüz güncellendi.'}`)}
+       ${boldRow('Etkin rolünüz', escapeHtml(roleName), '#00ff88')}
+       ${ctaButton('Giriş Yap', `${process.env.APP_URL || 'http://localhost:3000'}/login`, '#00d4ff')}`
+  const subject = status === 'approved'
+    ? 'AquaGuard — Hesabınız onaylandı'
+    : status === 'rejected' ? 'AquaGuard — Rol başvurusu sonucu' : 'AquaGuard — Rolünüz güncellendi'
+  const title = status === 'approved'
+    ? 'Hesabınız Onaylandı'
+    : status === 'rejected' ? 'Başvuru Sonucu' : 'Rol Güncellendi'
+  return sendMail(to, subject, template(title, status === 'rejected' ? '#f59e0b' : '#00ff88', status === 'rejected' ? 'ℹ️' : '✅', body))
 }
 
 /* ══════════════════════════════════════════════════════════════

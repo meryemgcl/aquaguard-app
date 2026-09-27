@@ -85,6 +85,72 @@
   transition: all var(--transition-base);
 }
 
+@media (max-width: 980px) {
+.navbar {
+  left: 0;
+  padding-inline: 1rem;
+  gap: 0.75rem;
+}
+
+.right {
+  gap: 0.5rem;
+}
+
+.searchInput {
+  width: 170px;
+}
+
+.searchInput:focus {
+  width: 210px;
+}
+}
+
+@media (max-width: 720px) {
+.navbar {
+  height: auto;
+  min-height: var(--navbar-height);
+  padding-block: 0.5rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.left,
+.right {
+  width: 100%;
+}
+
+.right {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.searchWrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.searchInput {
+  width: 100%;
+}
+
+.searchInput:focus {
+  width: 100%;
+}
+
+.pageTitle {
+  font-size: 1rem;
+}
+
+.breadcrumb {
+  font-size: 0.68rem;
+}
+
+.userBtnName {
+  display: none;
+}
+}
+
 .searchInput::placeholder {
   color: var(--text-muted);
 }

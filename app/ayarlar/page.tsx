@@ -7,28 +7,26 @@ import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 
 export default function SettingsPage() {
-  const { user, login, loading: authLoading } = useAuth(); // We'll mock login as refresh
+  const { user, loading: authLoading } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
 
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [saving, setSaving] = useState(false);
-  
+
   const [status, setStatus] = useState<{type: 'success' | 'error', msg: string} | null>(null);
 
   // Mock preferences
   const [emailNotifs, setEmailNotifs] = useState(true);
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.replace('/login');
-      } else {
-        setName(user.name);
-      }
+    if (!authLoading && !user) {
+      router.replace('/login');
     }
-  }, [user, authLoading, router]);
+  }, [authLoading, user, router]);
+
+  const displayName = user?.name ?? '';
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +34,7 @@ export default function SettingsPage() {
     setStatus(null);
 
     try {
-      const payload: any = {};
+      const payload: Record<string, string> = {};
       if (name !== user?.name) payload.name = name;
       if (password) payload.password = password;
 
@@ -61,7 +59,7 @@ export default function SettingsPage() {
       } else {
         setStatus({ type: 'error', msg: data.error || 'Güncelleme başarısız.' });
       }
-    } catch (err: any) {
+    } catch {
       setStatus({ type: 'error', msg: 'Bağlantı hatası oluştu.' });
     } finally {
       setSaving(false);
@@ -102,7 +100,7 @@ export default function SettingsPage() {
             <input 
               type="text" 
               className={styles.input} 
-              value={name} 
+              value={name || displayName} 
               onChange={e => setName(e.target.value)}
               required
             />

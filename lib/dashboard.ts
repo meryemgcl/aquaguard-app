@@ -38,6 +38,28 @@ export interface StatusData {
   color: string;
 }
 
+export interface AlertItem {
+  id: string;
+  title: string;
+  location: string;
+  severity: 'critical' | 'high' | 'medium';
+  metric: string;
+  value: string;
+  delta: string;
+  action: string;
+  eta: string;
+}
+
+export interface ExportRow {
+  location: string;
+  riskLevel: string;
+  lastMeasurement: string;
+  ph: number;
+  turbidity: number;
+  dissolvedO2: number;
+  temperature: number;
+}
+
 export interface DashboardData {
   stats: {
     totalReports: number;
@@ -46,6 +68,8 @@ export interface DashboardData {
     publishedThisMonth: number;
     totalReportsTrend: number;
     publishedTrend: number;
+    activeAlerts: number;
+    dataFreshness: string;
   };
   markers: MapMarker[];
   monthlyTrend: MonthlyTrend[];
@@ -58,6 +82,8 @@ export interface DashboardData {
     time: string;
     color: string;
   }[];
+  alerts: AlertItem[];
+  exportRows: ExportRow[];
 }
 
 /* ── Map marker data (real Turkish water bodies) ── */
@@ -155,6 +181,22 @@ const recentActivity = [
   { id: 'a6', text: '3 yeni kullanıcı', highlight: 'sisteme kaydoldu', time: '1 gün önce', color: '#6e8efb' },
 ];
 
+const alerts: AlertItem[] = [
+  { id: 'alert-1', title: 'Çözüm süresi kritik', location: 'Burdur Gölü', severity: 'critical', metric: 'Risk skoru', value: '91/100', delta: '+12%', action: 'Acil ekip ataması', eta: '45 dk' },
+  { id: 'alert-2', title: 'Su kalitesi bozulması', location: 'Sapanca Gölü', severity: 'high', metric: 'DO', value: '1.8 mg/L', delta: '-2.1', action: 'Gözlem planla', eta: '2 sa' },
+  { id: 'alert-3', title: 'Tüketim artışı', location: 'Gediz Havzası', severity: 'medium', metric: 'Tüketim', value: '18%', delta: '+5.4%', action: 'Kayıp kontrolü', eta: '1 gün' },
+];
+
+const exportRows: ExportRow[] = markers.map(marker => ({
+  location: marker.location,
+  riskLevel: marker.riskLevel,
+  lastMeasurement: marker.lastMeasurement,
+  ph: marker.params.ph,
+  turbidity: marker.params.turbidity,
+  dissolvedO2: marker.params.dissolvedO2,
+  temperature: marker.params.temperature,
+}));
+
 /* ── Export ── */
 export function getDashboardData(): DashboardData {
   const avgRisk = Math.round(markers.reduce((s, m) => s + m.riskScore, 0) / markers.length);
@@ -167,11 +209,15 @@ export function getDashboardData(): DashboardData {
       publishedThisMonth: 38,
       totalReportsTrend: 12,
       publishedTrend: 8,
+      activeAlerts: alerts.length,
+      dataFreshness: '12 dk',
     },
     markers,
     monthlyTrend,
     regionData,
     statusData,
     recentActivity,
+    alerts,
+    exportRows,
   };
 }

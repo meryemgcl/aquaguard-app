@@ -102,7 +102,6 @@ export default function MailTemplatesClient() {
       .then(d => {
         if (d.success) { setLogs(d.logs); setStats(d.stats); }
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function selectTemplate(t: MailTemplate) {

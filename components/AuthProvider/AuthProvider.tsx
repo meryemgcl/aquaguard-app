@@ -1,31 +1,27 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { SafeUser, UserRole, ROLE_ROUTES } from '@/lib/types';
+import { useRouter } from 'next/navigation';
+import { SafeUser, ROLE_ROUTES } from '@/lib/types';
+import { identifyUser, resetUser } from '@/lib/mixpanel';
 
 interface AuthContextType {
   user: SafeUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
-  register: (name: string, email: string, password: string, role: UserRole) => Promise<{ success: boolean; message: string }>;
+  register: (name: string, email: string, password: string, requestedRole?: 'uzman' | 'yonetici') => Promise<{ success: boolean; message: string; pending?: boolean }>;
   logout: () => Promise<void>;
   hasAccess: (route: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-import { identifyUser, resetUser } from '@/lib/mixpanel';
-
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<SafeUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  /* ── Check session on mount ── */
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/me');
       const data = await res.json();
@@ -44,7 +40,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  /* ── Check session on mount ── */
+  useEffect(() => {
+    let isMounted = true;
+
+    const runCheck = async () => {
+      await checkAuth();
+      if (!isMounted) return;
+    };
+
+    void runCheck();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [checkAuth]);
 
   /* ── Login ── */
   const login = async (email: string, password: string) => {
@@ -72,12 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   /* ── Register ── */
-  const register = async (name: string, email: string, password: string, role: UserRole) => {
+  const register = async (name: string, email: string, password: string, requestedRole?: 'uzman' | 'yonetici') => {
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, role }),
+        body: JSON.stringify({ name, email, password, requestedRole }),
       });
       const data = await res.json();
 
@@ -90,6 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         return { success: true, message: data.message };
       }
+      if (data.success && data.pending) {
+        return { success: true, pending: true, message: data.message };
+      }
       return { success: false, message: data.message || 'Kayıt başarısız.' };
     } catch {
       return { success: false, message: 'Bağlantı hatası.' };
@@ -101,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetch('/api/auth/me', { method: 'POST' });
     setUser(null);
     resetUser();
-    window.location.href = '/login';
+    router.push('/login');
   };
 
   /* ── Role-based access check ── */

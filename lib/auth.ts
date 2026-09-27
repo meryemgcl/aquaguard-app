@@ -8,22 +8,53 @@ import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import { JWTPayload } from './types';
 
-const getSecret = () => new TextEncoder().encode(process.env.JWT_SECRET || 'aquaguard-super-secret-key-2026');
+export const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error('JWT_SECRET ortam değişkeni tanımlı ve en az 32 karakter olmalıdır.');
+  }
+  return new TextEncoder().encode(secret);
+};
 
 /* ── Token Operations (Edge Compatible with jose) ── */
 
 export async function createToken(payload: JWTPayload): Promise<string> {
-  return new SignJWT(payload as any)
+  return new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(getSecret());
+    .sign(getJwtSecret());
 }
 
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, getSecret());
-    return payload as unknown as JWTPayload;
+    const { payload } = await jwtVerify(token, getJwtSecret());
+    const { userId, email, role, name, twoFactorVerified, twoFactorChallenge } = payload;
+    const validRoles: JWTPayload['role'][] = ['super_admin', 'admin', 'uzman', 'yonetici', 'halk'];
+
+    if (
+      typeof userId !== 'string' ||
+      !userId ||
+      typeof email !== 'string' ||
+      !email ||
+      typeof name !== 'string' ||
+      !name ||
+      typeof role !== 'string' ||
+      !validRoles.includes(role as JWTPayload['role']) ||
+      (twoFactorVerified !== undefined && typeof twoFactorVerified !== 'boolean') ||
+      (twoFactorChallenge !== undefined && typeof twoFactorChallenge !== 'boolean')
+    ) {
+      return null;
+    }
+
+    return {
+      userId,
+      email,
+      name,
+      role: role as JWTPayload['role'],
+      twoFactorVerified,
+      twoFactorChallenge,
+    };
   } catch {
     return null;
   }

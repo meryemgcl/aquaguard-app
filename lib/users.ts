@@ -55,18 +55,27 @@ export async function createUser(data: {
   name: string;
   email: string;
   password: string;
-  role?: User['role'];
+  requestedRole?: Extract<UserRole, 'uzman' | 'yonetici'>;
 }): Promise<SafeUser> {
-  const existing = await findUserByEmail(data.email);
+  const normalizedEmail = data.email.trim().toLowerCase();
+  const trimmedName = data.name.trim();
+
+  if (!trimmedName || !normalizedEmail || data.password.length < 6) {
+    throw new Error('Geçersiz kullanıcı bilgisi.');
+  }
+
+  const existing = await findUserByEmail(normalizedEmail);
   if (existing) throw new Error('Bu e-posta adresi zaten kayıtlı.');
 
   const passwordHash = await hashPassword(data.password);
   const newUser: User = {
-    id: String(Date.now()), // Or let Firestore generate an ID
-    name: data.name,
-    email: data.email.toLowerCase(),
+    id: String(Date.now()),
+    name: trimmedName,
+    email: normalizedEmail,
     passwordHash,
-    role: data.role || 'halk',
+    role: 'halk',
+    accountStatus: data.requestedRole ? 'pending' : 'active',
+    requestedRole: data.requestedRole,
     createdAt: new Date().toISOString(),
   };
 
@@ -82,14 +91,17 @@ export async function getAllUsers(): Promise<SafeUser[]> {
   return users.map(toSafeUser);
 }
 
-export async function updateUser(id: string, updates: Partial<User>): Promise<SafeUser | undefined> {
+export async function updateUser(
+  id: string,
+  updates: Partial<Pick<User, 'name' | 'passwordHash' | 'role' | 'accountStatus' | 'requestedRole' | 'twoFactorEnabled' | 'twoFactorSecret' | 'backupCodes'>>,
+): Promise<SafeUser | undefined> {
   if (id === 'super-admin-env') return undefined; // Cannot update env super admin
 
   const docRef = doc(db, 'users', id);
   const docSnap = await getDoc(docRef);
   if (!docSnap.exists()) return undefined;
 
-  let finalUpdates = { ...updates };
+  const finalUpdates = { ...updates };
   if (updates.passwordHash && typeof updates.passwordHash === 'string' && !updates.passwordHash.startsWith('$2')) {
     // Only hash if it's not already hashed (doesn't start with bcrypt prefix)
     finalUpdates.passwordHash = await hashPassword(updates.passwordHash);
@@ -112,6 +124,8 @@ export function toSafeUser(user: User): SafeUser {
     name: user.name,
     email: user.email,
     role: user.role,
+    accountStatus: user.accountStatus ?? 'active',
+    requestedRole: user.requestedRole,
     avatar: user.avatar,
     createdAt: user.createdAt,
   };

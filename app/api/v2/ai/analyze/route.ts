@@ -26,8 +26,18 @@ const DEMO_SAMPLES = [
 ]
 
 /* ── Statik analiz sonuçları (API maliyeti olmadan) ── */
+type LocalAnomaly = {
+  parameterId: string;
+  label: string;
+  value: number;
+  unit: string;
+  normalRange: string;
+  severity: 'critical' | 'warning';
+  explanation: string;
+};
+
 function analyzeLocally(params: Record<string, number>) {
-  const anomalies: any[] = []
+  const anomalies: LocalAnomaly[] = []
 
   if (params.ph < 6.5 || params.ph > 8.5) {
     anomalies.push({ parameterId: 'ph', label: 'pH', value: params.ph, unit: '', normalRange: '6.5 – 8.5', severity: params.ph < 5 || params.ph > 9 ? 'critical' : 'warning', explanation: `pH değeri ${params.ph < 6.5 ? 'asidik' : 'bazik'} sınırlar dışında.` })
@@ -99,7 +109,8 @@ export async function POST(req: NextRequest) {
     if (!description) return NextResponse.json({ error: 'Açıklama zorunludur.' }, { status: 400 })
     const result = await analyzeReport(description)
     return NextResponse.json(result)
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Sunucu hatası' }, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Sunucu hatası';
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

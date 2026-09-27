@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { MapContainer, TileLayer, useMap, Marker, Popup, CircleMarker } from 'react-leaflet';
 import useSupercluster from 'use-supercluster';
 import L from 'leaflet';
@@ -8,7 +8,7 @@ import 'leaflet/dist/leaflet.css';
 import styles from './Dashboard.module.css';
 
 /* ── Fix leaflet default icon ── */
-// @ts-ignore
+// @ts-expect-error Leaflet internal icon URL property may not exist on types.
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -99,8 +99,8 @@ function ClusterLayer({ markers }: { markers: MapMarker[] }) {
         if (isCluster) {
           // Kümedeki en yüksek risk rengini bul
           const leaves = supercluster!.getLeaves(cluster.id as number, Infinity);
-          const maxRisk = leaves.reduce((max: number, l: any) =>
-            (l.properties.riskScore > max ? l.properties.riskScore : max), 0);
+          const maxRisk = leaves.reduce((max: number, leaf: { properties: { riskScore: number } }) =>
+            (leaf.properties.riskScore > max ? leaf.properties.riskScore : max), 0);
           const clusterColor =
             maxRisk >= 80 ? '#ff4444' :
             maxRisk >= 60 ? '#ff6b35' :

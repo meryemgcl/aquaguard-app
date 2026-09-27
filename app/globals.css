@@ -18,6 +18,10 @@
   --bg-surface: #151b2e;
   --bg-input: #0d1225;
 
+  --focus-ring: rgba(0, 212, 255, 0.45);
+  --focus-ring-soft: rgba(0, 212, 255, 0.18);
+  --surface-alt: rgba(255, 255, 255, 0.04);
+
   --accent: #00d4ff;
   --accent-dark: #009fc2;
   --accent-glow: rgba(0, 212, 255, 0.15);
@@ -112,6 +116,24 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(0, 212, 255, 0.25);
+  color: var(--text-primary);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  box-shadow: 0 0 0 4px var(--focus-ring-soft), 0 0 0 1px var(--focus-ring);
 }
 
 a {

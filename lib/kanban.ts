@@ -258,6 +258,7 @@ export function addCard(data: {
   description: string;
   riskLevel: RiskLevel;
   riskScore: number;
+  creatorEmail?: string;
 }): KanbanCard {
   const newCard: KanbanCard = {
     id: `card-${Date.now()}`,
@@ -269,7 +270,7 @@ export function addCard(data: {
     riskLevel: data.riskLevel,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    creatorEmail: 'yeni@aquaguard.com',
+    creatorEmail: data.creatorEmail ?? 'yeni@aquaguard.com',
     assignee: { name: 'Atanmadı', role: 'uzman', initials: '--', color: '#8892a8' },
     tags: [],
     approvals: [],

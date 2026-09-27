@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider/AuthProvider';
 import { KanbanCard } from '@/lib/kanban';
@@ -12,14 +12,11 @@ export default function ArchivePage() {
   const router = useRouter();
 
   const [allTasks, setAllTasks] = useState<KanbanCard[]>([]);
-  const [tasks, setTasks] = useState<KanbanCard[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Filters
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Modal State
   const [selectedReport, setSelectedReport] = useState<KanbanCard | null>(null);
 
   useEffect(() => {
@@ -35,15 +32,13 @@ export default function ArchivePage() {
         .then(d => {
           if (d.success) {
             setAllTasks(d.tasks);
-            setTasks(d.tasks);
           }
         })
         .finally(() => setLoading(false));
     }
   }, [user]);
 
-  // Apply filters
-  useEffect(() => {
+  const tasks = useMemo(() => {
     let filtered = allTasks;
 
     if (statusFilter !== 'all') {
@@ -52,14 +47,14 @@ export default function ArchivePage() {
 
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(t => 
-        t.title.toLowerCase().includes(q) || 
+      filtered = filtered.filter(t =>
+        t.title.toLowerCase().includes(q) ||
         t.location.toLowerCase().includes(q)
       );
     }
 
-    setTasks(filtered);
-  }, [searchQuery, statusFilter, allTasks]);
+    return filtered;
+  }, [allTasks, searchQuery, statusFilter]);
 
   const getStatusBadge = (column: string) => {
     if (column === 'yayinlandi') {

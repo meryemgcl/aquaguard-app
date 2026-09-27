@@ -18,18 +18,18 @@ export async function POST(req: NextRequest) {
   try {
     const token = req.cookies.get('token')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    
+
     const payload = await verifyToken(token);
     if (!payload || !['admin', 'super_admin', 'uzman'].includes(payload.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { message } = await req.json()
+    const body = await req.json() as { message?: string };
+    const { message } = body;
     if (!message) return NextResponse.json({ error: 'Mesaj gerekli' }, { status: 400 })
 
     const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
-      // Fallback: rule-based responses
       const lower = message.toLowerCase()
       let reply = 'Üzgünüm, şu an yapay zeka servisine bağlanamıyorum.'
       if (lower.includes('riskli')) reply = '🔴 En riskli nokta **Ergene Nehri**\'dir. pH değeri 4.2 ile kritik asidik seviyede.'
@@ -45,7 +45,8 @@ export async function POST(req: NextRequest) {
     const reply = result.response.text()
 
     return NextResponse.json({ success: true, reply })
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Sunucu hatası';
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
 }

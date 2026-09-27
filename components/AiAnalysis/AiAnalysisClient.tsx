@@ -199,7 +199,12 @@ export default function AiAnalysisClient() {
   const criticalCount = results.filter(r => r.result.riskLevel === 'critical').length;
   const highCount = results.filter(r => r.result.riskLevel === 'high').length;
   const avgScore = Math.round(results.reduce((s, r) => s + r.result.riskScore, 0) / results.length);
-  const totalAnomalies = results.reduce((s, r) => s + r.result.anomalies.length, 0);
+  const summaryCards = [
+    { label: 'İzleme Noktası', value: results.length, icon: '📍', color: '#6e8efb' },
+    { label: 'Ortalama Risk', value: avgScore, icon: '📊', color: avgScore > 60 ? '#ff4444' : avgScore > 30 ? '#f59e0b' : '#00ff88' },
+    { label: 'Yüksek Risk', value: highCount, icon: '⚠️', color: '#f59e0b' },
+    { label: 'Kritik Alarm', value: criticalCount, icon: '🚨', color: '#ff4444' },
+  ];
 
   return (
     <div className={styles.page}>
@@ -234,12 +239,7 @@ export default function AiAnalysisClient() {
       {/* ── Summary Cards ── */}
       {tab === 'analysis' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-          {[
-            { label: 'İzleme Noktası', value: results.length, icon: '📍', color: '#6e8efb' },
-            { label: 'Ortalama Risk', value: avgScore, icon: '📊', color: avgScore > 60 ? '#ff4444' : avgScore > 30 ? '#f59e0b' : '#00ff88' },
-            { label: 'Kritik Alarm', value: criticalCount, icon: '🚨', color: '#ff4444' },
-            { label: 'Toplam Anomali', value: totalAnomalies, icon: '🔍', color: '#f59e0b' },
-          ].map(s => (
+          {summaryCards.map(s => (
             <div key={s.label} className="card" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ fontSize: '1.75rem', lineHeight: 1 }}>{s.icon}</div>
               <div>
