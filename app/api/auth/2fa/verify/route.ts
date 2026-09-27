@@ -65,8 +65,9 @@ export async function POST(request: NextRequest) {
       message: '2FA enabled successfully',
       backupCodes, // Only shown once - user must save these
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[2FA Verify Error]', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : '2FA verification failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

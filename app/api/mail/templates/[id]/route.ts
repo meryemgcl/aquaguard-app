@@ -3,11 +3,15 @@
    POST /api/mail/templates/[id]/preview — render preview */
 import { NextRequest, NextResponse } from 'next/server';
 import { getTemplate, updateTemplate, renderTemplate, TemplateId } from '@/lib/mailTemplates';
+import { requireApiUser } from '@/lib/api-auth';
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireApiUser(_req, ['super_admin', 'admin', 'yonetici']);
+  if (!auth.user) return auth.response;
+
   const { id } = await params;
   const template = getTemplate(id as TemplateId);
   if (!template) return NextResponse.json({ success: false, message: 'Not found.' }, { status: 404 });
@@ -18,6 +22,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireApiUser(request, ['super_admin', 'admin', 'yonetici']);
+  if (!auth.user) return auth.response;
+
   const { id } = await params;
   const body = await request.json();
   const updated = updateTemplate(id as TemplateId, {
@@ -32,6 +39,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireApiUser(request, ['super_admin', 'admin', 'yonetici']);
+  if (!auth.user) return auth.response;
+
   const { id } = await params;
   const template = getTemplate(id as TemplateId);
   if (!template) return NextResponse.json({ success: false, message: 'Not found.' }, { status: 404 });

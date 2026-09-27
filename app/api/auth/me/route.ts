@@ -73,9 +73,10 @@ export async function PUT(request: NextRequest) {
     const payload = await verifyToken(token);
     if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
 
-    const { name, password } = await request.json();
+    const body = await request.json() as { name?: string; password?: string };
+    const { name, password } = body;
 
-    const updateData: any = { name };
+    const updateData: { name?: string; passwordHash?: string } = { name };
     if (password) updateData.passwordHash = password;
     const updated = await updateUser(payload.userId, updateData);
     if (!updated) {
@@ -101,7 +102,8 @@ export async function PUT(request: NextRequest) {
     }
 
     return response;
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Profile update failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

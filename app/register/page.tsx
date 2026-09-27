@@ -4,15 +4,7 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider/AuthProvider';
-import { UserRole, ROLE_LABELS } from '@/lib/types';
 import styles from '../login/page.module.css';
-
-const ROLE_OPTIONS: { value: UserRole; desc: string }[] = [
-  { value: 'halk', desc: 'Harita ve genel istatistikleri görüntüleyebilir' },
-  { value: 'uzman', desc: 'Raporları analiz eder, AI modüllerine erişir' },
-  { value: 'yonetici', desc: 'Onay mekanizmasını yönetir, e-posta gönderir' },
-  { value: 'admin', desc: 'Tüm sistem ve kullanıcılara tam erişim' },
-];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -22,14 +14,16 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('halk');
+  const [requestedRole, setRequestedRole] = useState<'halk' | 'uzman' | 'yonetici'>('halk');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setNotice('');
 
     if (password !== confirmPassword) {
       setError('Şifreler eşleşmiyor.');
@@ -41,10 +35,19 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
-    const result = await register(name, email, password, role);
+    const result = await register(
+      name,
+      email,
+      password,
+      requestedRole === 'halk' ? undefined : requestedRole,
+    );
 
     if (result.success) {
-      router.push('/');
+      if (result.pending) {
+        setNotice(result.message);
+      } else {
+        router.push('/');
+      }
     } else {
       setError(result.message);
     }
@@ -90,6 +93,7 @@ export default function RegisterPage() {
               {error}
             </div>
           )}
+          {notice && <div className={styles.cardSubtitle} role="status">{notice}</div>}
 
           <form onSubmit={handleSubmit} className={styles.form}>
             {/* Name */}
@@ -116,22 +120,18 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Role */}
             <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Rol</label>
-              <div className={styles.inputWrapper}>
-                <svg className={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
-                <select value={role} onChange={e => setRole(e.target.value as UserRole)} className={styles.select}>
-                  {ROLE_OPTIONS.map(r => (
-                    <option key={r.value} value={r.value}>{ROLE_LABELS[r.value]}</option>
-                  ))}
-                </select>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#555f75', marginTop: '0.3rem', paddingLeft: '0.25rem' }}>
-                {ROLE_OPTIONS.find(r => r.value === role)?.desc}
-              </p>
+              <label className={styles.inputLabel} htmlFor="requestedRole">Hesap türü</label>
+              <select
+                id="requestedRole"
+                className={styles.input}
+                value={requestedRole}
+                onChange={event => setRequestedRole(event.target.value as 'halk' | 'uzman' | 'yonetici')}
+              >
+                <option value="halk">Vatandaş — hemen etkinleşir</option>
+                <option value="uzman">Çevre uzmanı — yönetici onayı gerekir</option>
+                <option value="yonetici">Yönetici — yönetici onayı gerekir</option>
+              </select>
             </div>
 
             {/* Password */}

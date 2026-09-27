@@ -38,19 +38,9 @@ export async function POST(request: NextRequest) {
     // Try TOTP code first
     if (verifyTwoFactorToken(user.twoFactorSecret, code)) {
       isValid = true;
-    } else if (user.backupCodes) {
-      // Try backup code
+    } else     if (user.backupCodes) {
       isValid = await verifyBackupCode(code, user.backupCodes);
-      if (isValid) {
-        // Remove used backup code
-        const updatedBackupCodes = user.backupCodes.filter(
-          (bc) => bc !== code
-        );
-        // Update user to remove used backup code
-        // Note: This is simplified - implement proper backup code removal
-      }
     }
-
     if (!isValid) {
       return NextResponse.json(
         { error: 'Invalid verification code' },
@@ -90,8 +80,9 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[2FA Challenge Error]', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : '2FA verification failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

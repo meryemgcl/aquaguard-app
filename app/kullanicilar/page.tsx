@@ -9,55 +9,71 @@ import styles from './page.module.css';
 export default function UsersPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  
+
   const [users, setUsers] = useState<SafeUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.replace('/login');
-      } else if (user.role !== 'admin') {
-        router.replace('/profil');
-      } else {
-        fetchUsers();
-      }
+    if (authLoading) return;
+    if (!user) {
+      router.replace('/login');
+      return;
     }
-  }, [user, authLoading, router]);
+    if (user.role !== 'admin' && user.role !== 'super_admin') {
+      router.replace('/profil');
+      return;
+    }
 
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch('/api/users');
-      const data = await res.json();
-      if (data.success) {
-        setUsers(data.users);
-      } else {
-        setError(data.error || 'Kullanıcılar yüklenemedi.');
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+        if (data.success) {
+          setUsers(data.users);
+        } else {
+          setError(data.error || 'Kullanıcılar yüklenemedi.');
+        }
+      } catch (caughtError: unknown) {
+        setError(caughtError instanceof Error ? caughtError.message : 'Kullanıcılar yüklenemedi.');
+      } finally {
+        setLoading(false);
       }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    void fetchUsers();
+  }, [user, authLoading, router]);
 
   const handleRoleChange = async (id: string, newRole: string) => {
     try {
       const res = await fetch(`/api/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newRole })
+        body: JSON.stringify({ role: newRole, accountStatus: 'active' })
       });
       const data = await res.json();
       if (data.success) {
-        setUsers(users.map(u => u.id === id ? { ...u, role: data.user.role } : u));
-        // You could add toast notification here
+        setUsers(users.map(u => u.id === id ? data.user : u));
       } else {
         alert(data.error);
       }
-    } catch (err) {
+    } catch {
       alert('Rol güncellenemedi.');
+    }
+  };
+
+  const handleRejectRoleRequest = async (id: string) => {
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'halk', accountStatus: 'active', decision: 'rejected' }),
+      });
+      const data = await res.json();
+      if (data.success) setUsers(users.map(u => u.id === id ? data.user : u));
+      else alert(data.error);
+    } catch {
+      alert('Rol başvurusu reddedilemedi.');
     }
   };
 
@@ -72,7 +88,7 @@ export default function UsersPage() {
       } else {
         alert(data.error);
       }
-    } catch (err) {
+    } catch {
       alert('Kullanıcı silinemedi.');
     }
   };
@@ -85,7 +101,7 @@ export default function UsersPage() {
     );
   }
 
-  if (user?.role !== 'admin') return null;
+  if (user?.role !== 'admin' && user?.role !== 'super_admin') return null;
 
   return (
     <div className={styles.container}>
@@ -104,6 +120,7 @@ export default function UsersPage() {
             <tr>
               <th>Kullanıcı</th>
               <th>Kayıt Tarihi</th>
+              <th>Başvuru Durumu</th>
               <th>Yetki (Rol)</th>
               <th>İşlemler</th>
             </tr>
@@ -124,6 +141,11 @@ export default function UsersPage() {
                 </td>
                 <td>{new Date(u.createdAt).toLocaleDateString('tr-TR')}</td>
                 <td>
+                  {u.accountStatus === 'pending'
+                    ? `Onay bekliyor (${u.requestedRole === 'uzman' ? 'Uzman' : 'Yönetici'})`
+                    : u.accountStatus === 'rejected' ? 'Başvuru reddedildi' : 'Etkin'}
+                </td>
+                <td>
                   <select 
                     className={styles.roleSelect} 
                     value={u.role}
@@ -133,11 +155,20 @@ export default function UsersPage() {
                     <option value="halk">Vatandaş (Halk)</option>
                     <option value="uzman">Çevre Uzmanı</option>
                     <option value="yonetici">Bölge Yöneticisi</option>
-                    <option value="admin">Sistem Admini</option>
+                    {user.role === 'super_admin' && <option value="admin">Sistem Admini</option>}
                   </select>
                 </td>
                 <td>
                   <div className={styles.actions}>
+                    {u.accountStatus === 'pending' && (
+                      <button
+                        className={styles.deleteBtn}
+                        onClick={() => handleRejectRoleRequest(u.id)}
+                        disabled={u.id === user.id}
+                      >
+                        Reddet
+                      </button>
+                    )}
                     <button 
                       className={styles.deleteBtn}
                       onClick={() => handleDelete(u.id)}

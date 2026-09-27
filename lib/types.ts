@@ -3,6 +3,7 @@
    ============================================================ */
 
 export type UserRole = 'super_admin' | 'admin' | 'uzman' | 'yonetici' | 'halk';
+export type AccountStatus = 'active' | 'pending' | 'rejected';
 
 export interface User {
   id: string;
@@ -10,6 +11,8 @@ export interface User {
   email: string;
   passwordHash: string;
   role: UserRole;
+  accountStatus?: AccountStatus;
+  requestedRole?: Exclude<UserRole, 'super_admin' | 'admin' | 'halk'>;
   avatar?: string;
   createdAt: string;
   twoFactorEnabled?: boolean;
@@ -22,6 +25,8 @@ export interface SafeUser {
   name: string;
   email: string;
   role: UserRole;
+  accountStatus?: AccountStatus;
+  requestedRole?: Exclude<UserRole, 'super_admin' | 'admin' | 'halk'>;
   avatar?: string;
   createdAt: string;
   twoFactorEnabled?: boolean;

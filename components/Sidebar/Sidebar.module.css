@@ -195,3 +195,36 @@
   color: var(--text-muted);
   white-space: nowrap;
 }
+
+@media (max-width: 980px) {
+  .sidebar {
+    width: min(78vw, 260px);
+    border-right-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .logo {
+    padding-inline: var(--space-md);
+  }
+
+  .nav {
+    padding-inline: var(--space-xs);
+  }
+
+  .navItem {
+    padding-block: 0.7rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .sidebar {
+    width: min(84vw, 260px);
+  }
+
+  .logoText {
+    font-size: 1.1rem;
+  }
+
+  .userSection {
+    padding-inline: var(--space-md);
+  }
+}

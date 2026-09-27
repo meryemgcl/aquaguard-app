@@ -3,22 +3,23 @@
    ============================================================ */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
-import { APPROVAL_ROLES, KanbanCard, ApprovalRecord } from '@/lib/kanban';
+import { APPROVAL_ROLES, KanbanCard, ApprovalRecord, ApprovalRole } from '@/lib/kanban';
+import { requireApiUser, STAFF_ROLES } from '@/lib/api-auth';
 import { sendRejectionMail, sendCitizenNotificationMail } from '@/lib/email';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 export async function POST(request: NextRequest) {
+  const auth = await requireApiUser(request, STAFF_ROLES);
+  if (!auth.user) return auth.response;
+
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 });
+    const payload = auth.user;
 
-    const payload = await verifyToken(token);
-    if (!payload) return NextResponse.json({ error: 'Geçersiz oturum.' }, { status: 401 });
-
-    const { cardId, reason } = await request.json();
+    const body = await request.json() as { cardId?: string; reason?: string };
+    const { cardId, reason } = body;
     if (!cardId) return NextResponse.json({ error: 'cardId gerekli.' }, { status: 400 });
+    const safeReason = reason?.trim() || 'Gerekçe belirtilmedi.';
 
     const cardRef = doc(db, 'reports', cardId);
     const cardSnap = await getDoc(cardRef);
@@ -26,7 +27,8 @@ export async function POST(request: NextRequest) {
     const card = cardSnap.data() as KanbanCard;
 
     const allowedRoles = APPROVAL_ROLES[card.column];
-    if (!allowedRoles || !allowedRoles.includes(payload.role as any)) {
+    const currentRole = payload.role as ApprovalRole | undefined;
+    if (!allowedRoles || !currentRole || !allowedRoles.includes(currentRole)) {
       return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
     }
 
@@ -34,13 +36,13 @@ export async function POST(request: NextRequest) {
       id: `appr-${Date.now()}`,
       cardId,
       action: 'rejected',
-      role: payload.role as any,
+      role: currentRole,
       actorName: payload.name,
-      actorInitials: payload.name.substring(0,2).toUpperCase(),
+      actorInitials: payload.name.substring(0, 2).toUpperCase(),
       actorColor: '#ff4444',
       columnFrom: card.column,
       columnTo: 'reddedildi',
-      reason: reason,
+      reason: safeReason,
       timestamp: new Date().toISOString()
     };
 
@@ -55,15 +57,16 @@ export async function POST(request: NextRequest) {
     // ── Red Maili ──────────────────────────────────────────────
     const adminEmail = process.env.ADMIN_EMAIL || '';
     if (card.creatorEmail && card.creatorEmail !== adminEmail) {
-      sendRejectionMail(card.creatorEmail, card.title, reason, payload.name).catch(console.error);
+      sendRejectionMail(card.creatorEmail, card.title, safeReason, payload.name).catch(console.error);
     }
     
     if (card.creatorEmail && card.creatorEmail !== 'yeni@aquaguard.com') {
-      sendCitizenNotificationMail(card.creatorEmail, card.title, card.location, 'rejected', reason).catch(console.error);
+      sendCitizenNotificationMail(card.creatorEmail, card.title, card.location, 'rejected', safeReason).catch(console.error);
     }
 
     return NextResponse.json({ success: true, card: updatedCard, message: `Reddedildi. Mail gönderildi.` });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Sunucu hatası' }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Sunucu hatası';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

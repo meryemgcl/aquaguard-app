@@ -9,10 +9,10 @@ import { toast } from 'sonner';
 import styles from './Kanban.module.css';
 
 interface AIResult {
-  riskLevel: 'low' | 'medium' | 'high' | 'critical';
-  explanation: string;
-  suggestedAction: string;
-  draftEmail: string;
+  riskLevel?: 'low' | 'medium' | 'high' | 'critical';
+  explanation?: string;
+  suggestedAction?: string;
+  draftEmail?: string;
   error?: string;
 }
 
@@ -111,12 +111,12 @@ export default function KanbanCardComponent({
       });
       const data = await res.json();
       if (res.ok) {
-        setAiResult(data);
+        setAiResult(data as AIResult);
       } else {
-        setAiResult({ ...data, error: data.error || 'Hata oluştu' } as any);
+        setAiResult({ ...(data as Partial<AIResult>), error: (data as { error?: string }).error || 'Hata oluştu' });
       }
     } catch {
-      setAiResult({ error: 'Sunucuya bağlanılamadı' } as any);
+      setAiResult({ error: 'Sunucuya bağlanılamadı' });
     } finally {
       setAiLoading(false);
     }
@@ -370,22 +370,22 @@ export default function KanbanCardComponent({
                     <span style={{
                       padding: '0.3rem 0.9rem', borderRadius: 'var(--radius-full)',
                       fontSize: '0.8rem', fontWeight: 700, border: '1px solid',
-                      color: riskColors[aiResult.riskLevel] || '#f59e0b',
-                      background: `${riskColors[aiResult.riskLevel] || '#f59e0b'}18`,
-                      borderColor: `${riskColors[aiResult.riskLevel] || '#f59e0b'}33`,
+                      color: aiResult.riskLevel ? riskColors[aiResult.riskLevel] || '#f59e0b' : '#f59e0b',
+                      background: `${aiResult.riskLevel ? riskColors[aiResult.riskLevel] || '#f59e0b' : '#f59e0b'}18`,
+                      borderColor: `${aiResult.riskLevel ? riskColors[aiResult.riskLevel] || '#f59e0b' : '#f59e0b'}33`,
                     }}>
-                      {aiResult.riskLevel?.toUpperCase()}
+                      {aiResult.riskLevel?.toUpperCase() ?? 'UNKNOWN'}
                     </span>
                   </div>
                   {/* Explanation */}
                   <div>
                     <p style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Gerekçe</p>
-                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>{aiResult.explanation}</p>
+                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>{aiResult.explanation ?? 'Gerekçe mevcut değil.'}</p>
                   </div>
                   {/* Action */}
                   <div>
                     <p style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>İlk Aksiyon</p>
-                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>{aiResult.suggestedAction}</p>
+                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>{aiResult.suggestedAction ?? 'Aksiyon önerisi mevcut değil.'}</p>
                   </div>
                   {/* Draft Email */}
                   <div>
@@ -395,7 +395,7 @@ export default function KanbanCardComponent({
                       border: '1px solid var(--border)', fontSize: '0.8rem', fontFamily: 'monospace',
                       color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.7,
                     }}>
-                      {aiResult.draftEmail}
+                      {aiResult.draftEmail ?? 'Taslak mevcut değil.'}
                     </div>
                   </div>
                   {/* Send Mail Button */}

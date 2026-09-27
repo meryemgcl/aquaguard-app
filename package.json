@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/smoke-check.mjs",
+    "test": "npm run lint && npm run typecheck && npm run smoke && npm run build",
     "deploy:rules": "firebase deploy --only firestore:rules",
     "clear:db": "tsx scripts/clear-db.ts"
   },

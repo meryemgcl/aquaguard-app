@@ -4,7 +4,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider/AuthProvider';
 import { ROLE_LABELS, ROLE_COLORS } from '@/lib/types';
-import { geocodeLocation, riskScoreToColor } from '@/lib/geocode';
 import { toast } from 'sonner';
 import { db } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
@@ -166,7 +165,7 @@ function NewReportModal({ onClose }: NewReportModalProps) {
             <select
               className="input"
               value={form.riskLevel}
-              onChange={e => setForm(f => ({ ...f, riskLevel: e.target.value as any }))}
+                    onChange={e => setForm(f => ({ ...f, riskLevel: e.target.value as 'low' | 'medium' | 'high' | 'critical' }))}
             >
               <option value="low">🟢 Düşük</option>
               <option value="medium">🟡 Orta</option>

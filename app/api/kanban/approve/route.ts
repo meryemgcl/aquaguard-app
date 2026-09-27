@@ -3,31 +3,32 @@
    ============================================================ */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
-import { APPROVAL_ROLES, APPROVAL_NEXT, KanbanColumn, ApprovalRecord, KanbanCard } from '@/lib/kanban';
+import { APPROVAL_ROLES, APPROVAL_NEXT, ApprovalRecord, KanbanCard, ApprovalRole } from '@/lib/kanban';
+import { requireApiUser, STAFF_ROLES } from '@/lib/api-auth';
 import { sendExpertApprovalMail, sendManagerApprovalMail, sendCitizenNotificationMail } from '@/lib/email';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 export async function POST(request: NextRequest) {
+  const auth = await requireApiUser(request, STAFF_ROLES);
+  if (!auth.user) return auth.response;
+
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 });
+    const payload = auth.user;
 
-    const payload = await verifyToken(token);
-    if (!payload) return NextResponse.json({ error: 'Geçersiz oturum.' }, { status: 401 });
-
-    const { cardId, draftEmail } = await request.json();
+    const body = await request.json() as { cardId?: string; draftEmail?: string };
+    const { cardId, draftEmail } = body;
     if (!cardId) return NextResponse.json({ error: 'cardId gerekli.' }, { status: 400 });
 
     const cardRef = doc(db, 'reports', cardId);
     const cardSnap = await getDoc(cardRef);
-    
+
     if (!cardSnap.exists()) return NextResponse.json({ error: 'Kart bulunamadı.' }, { status: 404 });
     const card = cardSnap.data() as KanbanCard;
 
     const allowedRoles = APPROVAL_ROLES[card.column];
-    if (!allowedRoles || !allowedRoles.includes(payload.role as any)) {
+    const currentRole = payload.role as ApprovalRole | undefined;
+    if (!allowedRoles || !currentRole || !allowedRoles.includes(currentRole)) {
       return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
     }
 
@@ -38,9 +39,9 @@ export async function POST(request: NextRequest) {
       id: `appr-${Date.now()}`,
       cardId,
       action: 'approved',
-      role: payload.role as any,
+      role: currentRole,
       actorName: payload.name,
-      actorInitials: payload.name.substring(0,2).toUpperCase(),
+      actorInitials: payload.name.substring(0, 2).toUpperCase(),
       actorColor: '#6e8efb',
       columnFrom: card.column,
       columnTo: nextCol,
@@ -78,7 +79,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, card: updatedCard, message: `Onaylandı. İlgili taraflara e-posta gönderildi.` });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Sunucu hatası' }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Sunucu hatası';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

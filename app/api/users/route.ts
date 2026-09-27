@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
 
     const users = await getAllUsers();
     return NextResponse.json({ success: true, users });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Users fetch failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

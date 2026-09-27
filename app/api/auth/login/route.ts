@@ -5,9 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
 import { findUserByEmail, toSafeUser, SUPER_ADMIN_SENTINEL } from '@/lib/users';
-import { comparePassword, createToken } from '@/lib/auth';
-
-const getSecret = () => new TextEncoder().encode(process.env.JWT_SECRET || 'aquaguard-super-secret-key-2026');
+import { comparePassword, createToken, getJwtSecret } from '@/lib/auth';
 
 // Basit in-memory Rate Limit (IP bazlı - Vercel ortamında instance başına çalışır)
 const rateLimitMap = new Map<string, { count: number; timestamp: number }>();
@@ -74,6 +72,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (user.accountStatus === 'pending') {
+      return NextResponse.json(
+        { success: false, message: 'Hesabınız yönetici onayı bekliyor.' },
+        { status: 403 }
+      );
+    }
+    if (user.accountStatus === 'rejected') {
+      return NextResponse.json(
+        { success: false, message: 'Hesap başvurunuz onaylanmadı. Destek ekibiyle iletişime geçin.' },
+        { status: 403 }
+      );
+    }
+
     // Başarılı girişte rate limit sıfırlanır
     rateLimitMap.delete(ip);
 
@@ -87,11 +98,11 @@ export async function POST(request: NextRequest) {
         name: user.name,
         twoFactorVerified: false,
         twoFactorChallenge: true,
-      } as any)
+      })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime('5m')
-        .sign(getSecret());
+        .sign(getJwtSecret());
 
       return NextResponse.json({
         success: true,
