@@ -5,7 +5,16 @@ import { MapContainer, TileLayer, useMap, Marker, Popup, CircleMarker } from 're
 import useSupercluster from 'use-supercluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import type { IncidentMapMarker } from '@/lib/incident-map';
 import styles from './Dashboard.module.css';
+
+const riskOrder: Record<string, number> = { low: 1, medium: 2, high: 3, critical: 4 };
+const riskColors: Record<string, string> = {
+  low: '#2f80ed',
+  medium: '#f2c94c',
+  high: '#ff6b35',
+  critical: '#eb5757',
+};
 
 /* ── Fix leaflet default icon ── */
 // @ts-expect-error Leaflet internal icon URL property may not exist on types.
@@ -16,22 +25,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-interface MapMarker {
-  id: string;
-  location: string;
-  lat: number;
-  lng: number;
-  riskScore: number;
-  riskLevel: string;
-  riskColor: string;
-  lastMeasurement: string;
-  params: { ph: number; turbidity: number; dissolvedO2: number; temperature: number };
-  isUserReport?: boolean;
-  reportTitle?: string;
-}
-
 interface Props {
-  markers: MapMarker[];
+  markers: IncidentMapMarker[];
   height?: string;
   zoom?: number;
   center?: [number, number];
@@ -40,7 +35,7 @@ interface Props {
 /* ══════════════════════════════════════════
    ClusterLayer — react-leaflet hook context içinde çalışır
    ══════════════════════════════════════════ */
-function ClusterLayer({ markers }: { markers: MapMarker[] }) {
+function ClusterLayer({ markers }: { markers: IncidentMapMarker[] }) {
   const map = useMap();
   const [bounds, setBounds] = useState<[number, number, number, number]>([-90, -180, 90, 180]);
   const [zoom, setZoom] = useState(map.getZoom());
@@ -67,10 +62,13 @@ function ClusterLayer({ markers }: { markers: MapMarker[] }) {
       riskScore: m.riskScore,
       riskLevel: m.riskLevel,
       location: m.location,
-      lastMeasurement: m.lastMeasurement,
+      reportedAt: m.reportedAt,
       params: m.params,
-      reportTitle: m.reportTitle,
-      isUserReport: m.isUserReport,
+      title: m.title,
+      category: m.category,
+      status: m.status,
+      province: m.province,
+      district: m.district,
     },
     geometry: {
       type: 'Point' as const,
@@ -93,19 +91,17 @@ function ClusterLayer({ markers }: { markers: MapMarker[] }) {
       {clusters.map(cluster => {
         const [lng, lat] = cluster.geometry.coordinates;
         const { cluster: isCluster, point_count, riskColor, riskScore, location,
-                lastMeasurement, params, reportTitle, isUserReport } = cluster.properties;
+                riskLevel, reportedAt, params, title, category, status, province, district } = cluster.properties;
 
         /* ── CLUSTER (grup) noktası ── */
         if (isCluster) {
           // Kümedeki en yüksek risk rengini bul
           const leaves = supercluster!.getLeaves(cluster.id as number, Infinity);
-          const maxRisk = leaves.reduce((max: number, leaf: { properties: { riskScore: number } }) =>
-            (leaf.properties.riskScore > max ? leaf.properties.riskScore : max), 0);
-          const clusterColor =
-            maxRisk >= 80 ? '#ff4444' :
-            maxRisk >= 60 ? '#ff6b35' :
-            maxRisk >= 35 ? '#f59e0b' :
-            '#00ff88';
+          const assessedLevels = leaves
+            .map((leaf: { properties: { riskLevel: string } }) => leaf.properties.riskLevel)
+            .filter((level: string) => Object.prototype.hasOwnProperty.call(riskOrder, level));
+          const highestRisk = assessedLevels.sort((a: string, b: string) => riskOrder[b] - riskOrder[a])[0];
+          const clusterColor = highestRisk ? riskColors[highestRisk] : '#8892a8';
 
           const size = Math.min(20 + (point_count / markers.length) * 40, 56);
 
@@ -151,7 +147,7 @@ function ClusterLayer({ markers }: { markers: MapMarker[] }) {
         }
 
         /* ── TEKİL nokta ── */
-        const radius = riskScore > 70 ? 12 : riskScore > 40 ? 9 : 7;
+        const radius = riskLevel === 'critical' ? 12 : riskLevel === 'high' ? 10 : 7;
         return (
           <CircleMarker
             key={`point-${cluster.properties.markerId}`}
@@ -171,31 +167,26 @@ function ClusterLayer({ markers }: { markers: MapMarker[] }) {
                 padding: '14px 16px', minWidth: '220px', fontFamily: 'Inter, sans-serif',
                 border: `1px solid ${riskColor}44`, fontSize: '13px',
               }}>
-                {isUserReport && (
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#00d4ff',
-                    textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
-                    🆕 Vatandaş Raporu
-                  </div>
-                )}
                 <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '6px' }}>
-                  {reportTitle || `📍 ${location}`}
+                  {title || `📍 ${location}`}
                 </div>
                 <div style={{ fontSize: '11px', color: '#8892a8', marginBottom: '8px' }}>
-                  📍 {location}
+                  📍 {location}{district && province ? ` · ${district}, ${province}` : ''}
                 </div>
                 <div style={{
                   display: 'inline-block', padding: '3px 10px', borderRadius: '16px',
                   background: `${riskColor}18`, border: `1px solid ${riskColor}44`,
                   color: riskColor, fontSize: '12px', fontWeight: 700, marginBottom: '10px',
                 }}>
-                  Risk Skoru: {riskScore}/100
+                  {riskScore === null ? 'Uzman değerlendirmesi bekleniyor' : `${riskLevelLabel(riskLevel)} · ${riskScore}/100`}
                 </div>
+                <div style={{ fontSize: '11px', marginBottom: '8px' }}>{category} · {statusLabel(status)}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                   {[
-                    { label: 'pH', val: params?.ph },
-                    { label: 'Bulanıklık', val: `${params?.turbidity} NTU` },
-                    { label: 'Çöz. O₂', val: `${params?.dissolvedO2} mg/L` },
-                    { label: 'Sıcaklık', val: `${params?.temperature}°C` },
+                    { label: 'pH', val: params?.ph ?? 'Ölçüm yok' },
+                    { label: 'Bulanıklık', val: params?.turbidity !== undefined ? `${params.turbidity} NTU` : 'Ölçüm yok' },
+                    { label: 'Çöz. O₂', val: params?.dissolvedO2 !== undefined ? `${params.dissolvedO2} mg/L` : 'Ölçüm yok' },
+                    { label: 'Sıcaklık', val: params?.temperature !== undefined ? `${params.temperature}°C` : 'Ölçüm yok' },
                   ].map(({ label, val }) => (
                     <div key={label} style={{ background: 'rgba(255,255,255,0.05)',
                       padding: '6px 8px', borderRadius: '6px' }}>
@@ -205,7 +196,7 @@ function ClusterLayer({ markers }: { markers: MapMarker[] }) {
                   ))}
                 </div>
                 <div style={{ fontSize: '11px', color: '#555f75', marginTop: '8px' }}>
-                  📅 Son ölçüm: {lastMeasurement}
+                  📅 Rapor tarihi: {reportedAt}
                 </div>
               </div>
             </Popup>
@@ -214,6 +205,28 @@ function ClusterLayer({ markers }: { markers: MapMarker[] }) {
       })}
     </>
   );
+}
+
+function riskLevelLabel(level: string): string {
+  return ({
+    low: 'Düşük risk',
+    medium: 'Orta risk',
+    high: 'Yüksek risk',
+    critical: 'Kritik risk',
+  } as Record<string, string>)[level] ?? 'Değerlendirilmedi';
+}
+
+function statusLabel(status: string): string {
+  return ({
+    yeni_ihbar: 'Yeni ihbar',
+    uzman_incelemesinde: 'Uzman incelemesinde',
+    dogrulandi: 'Doğrulandı',
+    yonetici_onayinda: 'Yönetici onayında',
+    yayinda: 'Yayında',
+    reddedildi: 'Reddedildi',
+    gecersiz_ihbar: 'Geçersiz ihbar',
+    kapatildi: 'Kapatıldı',
+  } as Record<string, string>)[status] ?? status;
 }
 
 /* ══════════════════════════════════════════

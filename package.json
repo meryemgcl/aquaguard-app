@@ -4,13 +4,17 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke-check.mjs",
-    "test": "npm run lint && npm run typecheck && npm run smoke && npm run build",
-    "deploy:rules": "firebase deploy --only firestore:rules",
+    "test:measurements": "tsx scripts/test-measurements.ts",
+    "test:clustering": "tsx scripts/test-clustering.ts",
+    "test:open-data": "tsx scripts/test-open-data.ts",
+    "test:workflow": "tsx scripts/test-kanban-workflow.ts",
+    "test": "npm run lint && npm run typecheck && npm run smoke && npm run test:measurements && npm run test:clustering && npm run test:open-data && npm run test:workflow && npm run build",
+    "seed:db": "tsx scripts/seed.ts",
     "clear:db": "tsx scripts/clear-db.ts"
   },
   "dependencies": {
@@ -22,12 +26,12 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/leaflet": "^1.9.22",
     "bcryptjs": "^3.0.3",
-    "firebase": "^12.17.1",
+    "better-sqlite3": "^13.0.3",
     "framer-motion": "^13.0.0",
     "jose": "^6.2.9",
     "leaflet": "^1.9.4",
     "mixpanel-browser": "^2.82.0",
-    "next": "16.3.0",
+    "next": "16.3.6",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -37,10 +41,12 @@
     "sonner": "^2.0.7",
     "speakeasy": "^2.0.0",
     "supercluster": "^9.0.0",
-    "use-supercluster": "^1.2.0"
+    "use-supercluster": "^1.2.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/mixpanel-browser": "^2.60.0",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
@@ -49,7 +55,7 @@
     "@types/speakeasy": "^2.0.10",
     "dotenv": "^17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.3.0",
+    "eslint-config-next": "16.3.6",
     "tailwindcss": "^4",
     "tsx": "^4.23.12",
     "typescript": "^5"

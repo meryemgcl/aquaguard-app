@@ -3,68 +3,52 @@
    ============================================================ */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { APPROVAL_ROLES, KanbanCard, ApprovalRecord, ApprovalRole } from '@/lib/kanban';
-import { requireApiUser, STAFF_ROLES } from '@/lib/api-auth';
-import { sendRejectionMail, sendCitizenNotificationMail } from '@/lib/email';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { getCardById, recordApproval } from '@/lib/kanban';
+import { APPROVAL_ROLES } from '@/lib/kanban-types';
+import { requireApiUser } from '@/lib/api-auth';
+import { isRecord } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
-  const auth = await requireApiUser(request, STAFF_ROLES);
+  const auth = await requireApiUser(request, ['yonetici']);
   if (!auth.user) return auth.response;
 
   try {
     const payload = auth.user;
 
-    const body = await request.json() as { cardId?: string; reason?: string };
-    const { cardId, reason } = body;
-    if (!cardId) return NextResponse.json({ error: 'cardId gerekli.' }, { status: 400 });
-    const safeReason = reason?.trim() || 'Gerekçe belirtilmedi.';
+    const body: unknown = await request.json();
+    if (!isRecord(body) || typeof body.cardId !== 'string' || !body.cardId ||
+        (body.reason !== undefined && (typeof body.reason !== 'string' || body.reason.length > 2000))) {
+      return NextResponse.json({ error: 'Geçersiz istek gövdesi veya cardId.' }, { status: 400 });
+    }
+    const cardId = body.cardId;
+    const reason = body.reason;
+    const safeReason = typeof reason === 'string' ? reason.trim() : '';
+    if (safeReason.length < 10) {
+      return NextResponse.json({ error: 'Kapatma gerekçesi en az 10 karakter olmalıdır.' }, { status: 400 });
+    }
 
-    const cardRef = doc(db, 'reports', cardId);
-    const cardSnap = await getDoc(cardRef);
-    if (!cardSnap.exists()) return NextResponse.json({ error: 'Kart bulunamadı.' }, { status: 404 });
-    const card = cardSnap.data() as KanbanCard;
+    const card = getCardById(cardId);
+    if (!card) return NextResponse.json({ error: 'Kart bulunamadı.' }, { status: 404 });
 
     const allowedRoles = APPROVAL_ROLES[card.column];
-    const currentRole = payload.role as ApprovalRole | undefined;
-    if (!allowedRoles || !currentRole || !allowedRoles.includes(currentRole)) {
+    if (payload.role !== 'yonetici' || !allowedRoles || !allowedRoles.includes(payload.role)) {
       return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
     }
 
-    const newApproval: ApprovalRecord = {
-      id: `appr-${Date.now()}`,
-      cardId,
+    const updatedCard = recordApproval(cardId, card.column, {
       action: 'rejected',
-      role: currentRole,
+      role: 'yonetici',
       actorName: payload.name,
       actorInitials: payload.name.substring(0, 2).toUpperCase(),
       actorColor: '#ff4444',
       columnFrom: card.column,
       columnTo: 'reddedildi',
+      resolution: 'kapatildi',
       reason: safeReason,
-      timestamp: new Date().toISOString()
-    };
-
-    await updateDoc(cardRef, {
-      column: 'reddedildi',
-      updatedAt: new Date().toISOString(),
-      approvals: arrayUnion(newApproval)
     });
+    if (!updatedCard) return NextResponse.json({ error: 'Rapor eşzamanlı olarak değişti; yenileyip tekrar deneyin.' }, { status: 409 });
 
-    const updatedCard = { ...card, column: 'reddedildi', approvals: [...(card.approvals || []), newApproval] };
-
-    // ── Red Maili ──────────────────────────────────────────────
-    const adminEmail = process.env.ADMIN_EMAIL || '';
-    if (card.creatorEmail && card.creatorEmail !== adminEmail) {
-      sendRejectionMail(card.creatorEmail, card.title, safeReason, payload.name).catch(console.error);
-    }
-    
-    if (card.creatorEmail && card.creatorEmail !== 'yeni@aquaguard.com') {
-      sendCitizenNotificationMail(card.creatorEmail, card.title, card.location, 'rejected', safeReason).catch(console.error);
-    }
-
-    return NextResponse.json({ success: true, card: updatedCard, message: `Reddedildi. Mail gönderildi.` });
+    return NextResponse.json({ success: true, message: 'İhbar kapatıldı.' });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Sunucu hatası';
     return NextResponse.json({ error: message }, { status: 500 });

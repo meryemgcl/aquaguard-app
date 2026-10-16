@@ -32,10 +32,25 @@
 .pageSubtitle { font-size: 0.82rem; color: #8892a8; margin-top: 0.2rem; }
 
 .filterBar { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.headerActions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-left: auto; }
+.embedButton {
+  min-height: 42px;
+  padding: 0 13px;
+  border: 1px solid rgba(0,212,255,.3);
+  border-radius: 10px;
+  background: rgba(0,212,255,.08);
+  color: #91e8ff;
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.embedButton:hover { border-color: rgba(0,212,255,.65); background: rgba(0,212,255,.13); }
+.advancedFilters { flex: 1 0 100%; }
 
 .filterBtn {
   display: flex; align-items: center; gap: 0.35rem;
-  padding: 0.4rem 0.8rem; border-radius: 10px;
+  min-height: 44px; padding: 0.4rem 0.8rem; border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03);
   color: #8892a8; font-size: 0.78rem; font-weight: 500;
   cursor: pointer; font-family: inherit; transition: all 0.2s;
@@ -139,6 +154,24 @@
     grid-template-columns: 1fr;
     grid-template-rows: auto 400px auto;
     height: auto;
+  }
+
+  @media (max-width: 600px) {
+    .pageHeader {
+      align-items: stretch;
+    }
+
+    .headerActions { margin-left: 0; }
+
+    .filterBar {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 0.25rem;
+    }
+
+    .filterBtn {
+      flex: 0 0 auto;
+    }
   }
   .sidePanel {
     max-height: 200px;

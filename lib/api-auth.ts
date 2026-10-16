@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import type { JWTPayload, UserRole } from '@/lib/types';
+import { findUserById } from '@/lib/users';
+import { STAFF_ROLES } from '@/lib/permissions';
 
-export const STAFF_ROLES: readonly UserRole[] = [
-  'super_admin',
-  'admin',
-  'uzman',
-  'yonetici',
-];
+export { STAFF_ROLES };
 
 type ApiUserResult =
   | { user: JWTPayload; response?: never }
@@ -32,24 +29,45 @@ export async function requireApiUser(
     };
   }
 
-  const user = await verifyToken(token);
-  if (!user || !user.userId || !VALID_ROLES.has(user.role)) {
+  const claims = await verifyToken(token);
+  if (!claims || !claims.userId || !VALID_ROLES.has(claims.role)) {
     return {
       response: NextResponse.json({ error: 'Geçersiz oturum.' }, { status: 401 }),
     };
   }
 
-  if (user.twoFactorChallenge && !user.twoFactorVerified) {
+  if (claims.twoFactorChallenge && !claims.twoFactorVerified) {
     return {
       response: NextResponse.json({ error: 'İki aşamalı doğrulama tamamlanmalı.' }, { status: 403 }),
     };
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  const storedUser = await findUserById(claims.userId);
+  if (!storedUser || storedUser.accountStatus !== 'active' || !VALID_ROLES.has(storedUser.role)) {
+    return {
+      response: NextResponse.json({ error: 'Etkin bir hesapla giriş yapmanız gerekiyor.' }, { status: 401 }),
+    };
+  }
+
+  if (storedUser.twoFactorEnabled && claims.twoFactorVerified !== true) {
+    return {
+      response: NextResponse.json({ error: 'İki aşamalı doğrulama tamamlanmalı.' }, { status: 403 }),
+    };
+  }
+
+  if (allowedRoles && !allowedRoles.includes(storedUser.role)) {
     return {
       response: NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 }),
     };
   }
 
+  const user: JWTPayload = {
+    userId: storedUser.id,
+    email: storedUser.email,
+    role: storedUser.role,
+    name: storedUser.name,
+    twoFactorVerified: claims.twoFactorVerified,
+    twoFactorChallenge: claims.twoFactorChallenge,
+  };
   return { user };
 }

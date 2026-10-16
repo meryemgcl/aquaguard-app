@@ -2,10 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  experimental: {
+    cpus: 2,
+  },
+  serverExternalPackages: ['better-sqlite3'],
   async headers() {
     return [
       {
-        source: '/(.*)',
+        source: '/:path((?!embed/harita$).*)',
         headers: [
           {
             key: 'X-Content-Type-Options',
@@ -27,6 +31,15 @@ const nextConfig: NextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           }
+        ],
+      },
+      {
+        source: '/embed/harita',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         ],
       },
     ];

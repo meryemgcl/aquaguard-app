@@ -62,6 +62,29 @@ export default function UsersPage() {
     }
   };
 
+  const handleApproveRoleRequest = async (pendingUser: SafeUser) => {
+    if (pendingUser.accountStatus !== 'pending' || !pendingUser.requestedRole) return;
+    try {
+      const res = await fetch(`/api/users/${encodeURIComponent(pendingUser.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: pendingUser.requestedRole,
+          accountStatus: 'active',
+          decision: 'approved',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUsers(current => current.map(u => u.id === pendingUser.id ? data.user : u));
+      } else {
+        alert(data.error || 'Rol başvurusu onaylanamadı.');
+      }
+    } catch {
+      alert('Rol başvurusu onaylanamadı.');
+    }
+  };
+
   const handleRejectRoleRequest = async (id: string) => {
     try {
       const res = await fetch(`/api/users/${id}`, {
@@ -150,7 +173,7 @@ export default function UsersPage() {
                     className={styles.roleSelect} 
                     value={u.role}
                     onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                    disabled={u.id === user.id} // Kendisini değiştiremesin
+                    disabled={u.id === user.id || u.accountStatus === 'pending'}
                   >
                     <option value="halk">Vatandaş (Halk)</option>
                     <option value="uzman">Çevre Uzmanı</option>
@@ -161,13 +184,22 @@ export default function UsersPage() {
                 <td>
                   <div className={styles.actions}>
                     {u.accountStatus === 'pending' && (
-                      <button
-                        className={styles.deleteBtn}
-                        onClick={() => handleRejectRoleRequest(u.id)}
-                        disabled={u.id === user.id}
-                      >
-                        Reddet
-                      </button>
+                      <>
+                        <button
+                          className={styles.approveBtn}
+                          onClick={() => void handleApproveRoleRequest(u)}
+                          disabled={u.id === user.id || !u.requestedRole}
+                        >
+                          Onayla
+                        </button>
+                        <button
+                          className={styles.deleteBtn}
+                          onClick={() => void handleRejectRoleRequest(u.id)}
+                          disabled={u.id === user.id}
+                        >
+                          Reddet
+                        </button>
+                      </>
                     )}
                     <button 
                       className={styles.deleteBtn}

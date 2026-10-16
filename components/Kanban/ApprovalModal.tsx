@@ -74,7 +74,7 @@ export default function ApprovalModal({ cardTitle, action, onConfirm, onCancel }
               {isReject ? 'Raporu Reddet' : 'Raporu Onayla'}
             </h3>
             <p className={styles.subtitle}>
-              {isReject ? 'Bu işlem geri alınamaz. Mail otomatik gönderilecek.' : 'Rapor bir sonraki aşamaya geçecek.'}
+              {isReject ? 'Bu işlem ihbarı kapatır. Gerekçe denetim izine kaydedilir.' : 'İhbar kamuya açık olarak yayımlanacaktır.'}
             </p>
           </div>
           <button className={styles.closeBtn} onClick={onCancel} aria-label="Kapat">
@@ -131,7 +131,7 @@ export default function ApprovalModal({ cardTitle, action, onConfirm, onCancel }
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.8">
                 <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M22 4L12 13 2 4" />
               </svg>
-              <span>Raporu oluşturana otomatik düzeltme daveti maili gönderilecek.</span>
+              <span>Kapatma gerekçesi ihbarın denetim izine kaydedilecektir.</span>
             </div>
           </div>
         )}
@@ -142,7 +142,7 @@ export default function ApprovalModal({ cardTitle, action, onConfirm, onCancel }
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="1.8">
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            <p>Onaylama işlemi kaydedilecek ve rapor oluşturan kişiye bildirim maili gönderilecektir.</p>
+            <p>Yayımlama kararı yerel denetim izine kaydedilecektir.</p>
           </div>
         )}
 
@@ -164,7 +164,7 @@ export default function ApprovalModal({ cardTitle, action, onConfirm, onCancel }
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
-                Reddet &amp; Mail Gönder
+                İhbarı Kapat
               </>
             ) : (
               <>

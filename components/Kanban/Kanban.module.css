@@ -10,6 +10,34 @@
   min-height: calc(100vh - var(--navbar-height) - 4rem);
 }
 
+.loadError,
+.emptyBoard,
+.refreshWarning {
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  background: var(--bg-card);
+}
+
+.loadError {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-sm);
+  border-color: var(--danger);
+}
+
+.loadError button {
+  min-height: 44px;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.refreshWarning {
+  border-color: var(--warning);
+}
+
 /* ── Board Header ── */
 .boardHeader {
   display: flex;
@@ -600,4 +628,3 @@
   border-color: rgba(255,68,68,0.25);
   color: #ff6b6b;
 }
-

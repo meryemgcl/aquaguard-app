@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './AiAnalysis.module.css';
 import { trackEvent } from '@/lib/mixpanel';
 
@@ -29,13 +29,6 @@ interface SampleResult {
   result: AnalysisResult;
 }
 
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'bot';
-  text: string;
-  time: string;
-}
-
 const PARAM_ICONS: Record<string, string> = {
   ph: '🧪', turbidity: '🌫️', heavyMetal: '⚠️',
   dissolvedO2: '💨', temperature: '🌡️', conductivity: '⚡',
@@ -51,10 +44,6 @@ const PARAM_UNITS: Record<string, string> = {
   dissolvedO2: 'mg/L', temperature: '°C', conductivity: 'μS/cm',
 };
 
-function formatTime(d: Date) {
-  return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-}
-
 /* ── Skeleton Loader ── */
 function Skeleton({ w = '100%', h = 16, r = 8 }: { w?: string | number; h?: number; r?: number }) {
   return (
@@ -67,19 +56,6 @@ export default function AiAnalysisClient() {
   const [results, setResults] = useState<SampleResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<number>(0);
-  const [tab, setTab] = useState<'analysis' | 'chat'>('analysis');
-
-  /* Chat state */
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'bot-0', role: 'bot',
-      text: '👋 Merhaba! Ben **AquaBot**, AquaGuard yapay zeka asistanınız.\n\nSu kalitesi, risk analizleri ve parametre bilgileri hakkında bana soru sorabilirsiniz.\n\nÖrnekler:\n- "En riskli su kaynağı hangisi?"\n- "Genel kalite durumu nasıl?"\n- "pH değerleri normal mi?"',
-      time: formatTime(new Date()),
-    },
-  ]);
-  const [chatInput, setChatInput] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
 
   /* Fetch all analyses */
   useEffect(() => {
@@ -89,47 +65,6 @@ export default function AiAnalysisClient() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
-
-  /* Scroll chat */
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  /* Send chat */
-  const sendChat = useCallback(async () => {
-    if (!chatInput.trim() || chatLoading) return;
-
-    const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`, role: 'user',
-      text: chatInput.trim(), time: formatTime(new Date()),
-    };
-    setMessages(prev => [...prev, userMsg]);
-    setChatInput('');
-    setChatLoading(true);
-
-    trackEvent('AI_Chat_Requested', { query: userMsg.text });
-
-    try {
-      const res = await fetch('/api/v2/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg.text }),
-      });
-      const data = await res.json();
-      setMessages(prev => [...prev, {
-        id: `bot-${Date.now()}`, role: 'bot',
-        text: data.success ? data.reply : 'Bir hata oluştu. Lütfen tekrar deneyin.',
-        time: formatTime(new Date()),
-      }]);
-    } catch {
-      setMessages(prev => [...prev, {
-        id: `bot-err-${Date.now()}`, role: 'bot',
-        text: 'Bağlantı hatası. Lütfen tekrar deneyin.', time: formatTime(new Date()),
-      }]);
-    } finally {
-      setChatLoading(false);
-    }
-  }, [chatInput, chatLoading]);
 
   const cur = results[selected];
 
@@ -182,7 +117,7 @@ export default function AiAnalysisClient() {
         <div className={styles.pageHeader}>
           <div>
             <h1 className={styles.pageTitle}><span className={styles.aiIcon}>🤖</span> AI Su Kalitesi Analizi</h1>
-            <p className={styles.pageSubtitle}>Gemini destekli anomali tespiti, risk skorlama ve doğal dil sorgulama</p>
+            <p className={styles.pageSubtitle}>İzleme noktalarındaki ölçümleri ve risk göstergelerini inceleyin.</p>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5rem 2rem', gap: '1.5rem', color: 'var(--text-muted)', textAlign: 'center' }}>
@@ -217,42 +152,23 @@ export default function AiAnalysisClient() {
           </h1>
           <p className={styles.pageSubtitle}>Gemini destekli anomali tespiti, risk skorlama ve doğal dil sorgulama</p>
         </div>
-        <div className={styles.tabBar}>
-          <button className={`${styles.tabBtn} ${tab === 'analysis' ? styles.tabActive : ''}`}
-            onClick={() => setTab('analysis')}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" />
-            </svg>
-            Analiz Paneli
-          </button>
-          <button className={`${styles.tabBtn} ${tab === 'chat' ? styles.tabActive : ''}`}
-            onClick={() => setTab('chat')}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            AquaBot Chat
-          </button>
-        </div>
       </div>
 
       {/* ── Summary Cards ── */}
-      {tab === 'analysis' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-          {summaryCards.map(s => (
-            <div key={s.label} className="card" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ fontSize: '1.75rem', lineHeight: 1 }}>{s.icon}</div>
-              <div>
-                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{s.label}</p>
-                <p style={{ fontSize: '1.75rem', fontWeight: 800, color: s.color, lineHeight: 1.2 }}>{s.value}</p>
-              </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        {summaryCards.map(s => (
+          <div key={s.label} className="card" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ fontSize: '1.75rem', lineHeight: 1 }}>{s.icon}</div>
+            <div>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{s.label}</p>
+              <p style={{ fontSize: '1.75rem', fontWeight: 800, color: s.color, lineHeight: 1.2 }}>{s.value}</p>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
 
       {/* ════════ ANALYSIS TAB ════════ */}
-      {tab === 'analysis' && cur && (
+      {cur && (
         <div className={styles.analysisLayout}>
           {/* Left: Location cards */}
           <aside className={styles.locationList}>
@@ -420,113 +336,6 @@ export default function AiAnalysisClient() {
         </div>
       )}
 
-      {/* ════════ CHAT TAB ════════ */}
-      {tab === 'chat' && (
-        <div className={styles.chatLayout}>
-          <div className={styles.chatWindow}>
-            <div className={styles.chatHeader}>
-              <div className={styles.chatBotAvatar}>🤖</div>
-              <div>
-                <span className={styles.chatBotName}>AquaBot</span>
-                <span className={styles.chatBotStatus}>
-                  <span className={styles.onlineDot} />
-                  Gemini ile çalışıyor
-                </span>
-              </div>
-            </div>
-
-            <div className={styles.chatMessages}>
-              {messages.map(msg => (
-                <div key={msg.id} className={`${styles.chatBubble} ${msg.role === 'user' ? styles.chatUser : styles.chatBot}`}>
-                  {msg.role === 'bot' && <div className={styles.bubbleAvatar}>🤖</div>}
-                  <div className={styles.bubbleContent}>
-                    <div className={styles.bubbleText}
-                      dangerouslySetInnerHTML={{
-                        __html: msg.text
-                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                          .replace(/\n/g, '<br/>')
-                      }}
-                    />
-                    <span className={styles.bubbleTime}>{msg.time}</span>
-                  </div>
-                </div>
-              ))}
-              {chatLoading && (
-                <div className={`${styles.chatBubble} ${styles.chatBot}`}>
-                  <div className={styles.bubbleAvatar}>🤖</div>
-                  <div className={styles.bubbleContent}>
-                    <div className={styles.typingDots}>
-                      <span /><span /><span />
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-
-            <div className={styles.chatInputArea}>
-              <div className={styles.chatSuggestions}>
-                {['En riskli su kaynağı hangisi?', 'Genel kalite durumu nasıl?', 'pH değerleri normal mi?'].map(q => (
-                  <button key={q} className={styles.suggestionBtn}
-                    onClick={() => { setChatInput(q); }}>
-                    {q}
-                  </button>
-                ))}
-              </div>
-              <div className={styles.chatInputRow}>
-                <input
-                  className={styles.chatInput}
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }}
-                  placeholder="AquaBot'a bir soru sorun…"
-                  disabled={chatLoading}
-                />
-                <button className={styles.sendBtn} onClick={sendChat}
-                  disabled={chatLoading || !chatInput.trim()}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Chat sidebar — quick stats */}
-          <aside className={styles.chatSidebar}>
-            <div className={styles.sidebarTitle}>📊 Anlık Özet</div>
-            {results.map((r, i) => (
-              <div key={i} className={styles.sidebarItem}
-                onClick={() => { setSelected(i); setTab('analysis'); }}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className={styles.sidebarItemTop}>
-                  <span className={styles.sidebarLoc}>{r.sample.location.split(',')[0]}</span>
-                  <span className={styles.sidebarScore} style={{ color: r.result.riskColor }}>
-                    {r.result.riskScore}
-                  </span>
-                </div>
-                <div className={styles.sidebarBar}>
-                  <div className={styles.sidebarBarFill}
-                    style={{ width: `${r.result.riskScore}%`, background: r.result.riskColor }} />
-                </div>
-                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 3 }}>
-                  {r.result.anomalies.length > 0 ? `${r.result.anomalies.length} anomali` : '✓ Normal'}
-                </p>
-              </div>
-            ))}
-            <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(110,142,251,0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(110,142,251,0.2)' }}>
-              <p style={{ fontSize: '0.72rem', color: '#6e8efb', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Genel Durum</p>
-              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                {criticalCount > 0 ? `🚨 ${criticalCount} kritik nokta acil müdahale bekliyor.` : '✅ Kritik seviyede alan yok.'}
-              </p>
-              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                Ortalama risk skoru: <strong style={{ color: 'var(--text-primary)' }}>{avgScore}/100</strong>
-              </p>
-            </div>
-          </aside>
-        </div>
-      )}
     </div>
   );
 }

@@ -4,7 +4,6 @@ export interface AIAnalysisResult {
   riskLevel: 'low' | 'medium' | 'high' | 'critical'
   explanation: string
   suggestedAction: string
-  draftEmail: string
 }
 
 export async function analyzeReport(description: string): Promise<AIAnalysisResult> {
@@ -18,16 +17,15 @@ export async function analyzeReport(description: string): Promise<AIAnalysisResu
   const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' })
 
   const prompt = `
-  Sen AquaGuard isimli bir su kalitesi ve çevre koruma sisteminin yapay zeka asistanısın. 
-  Aşağıda bir su kirliliği veya kalite sorunu ihbar/rapor metni bulunuyor.
+  Sen AquaGuard su kirliliği olaylarının uzman incelemesine destek olan bir analiz aracısın.
+  Aşağıda bir su kirliliği ihbarının açıklaması bulunuyor.
   Bu raporu analiz et ve bana SADECE aşağıdaki JSON formatında cevap ver.
   Backtick, "json" etiketi veya herhangi bir markdown kullanma. Sadece ham JSON döndür.
 
   {
     "riskLevel": "low" | "medium" | "high" | "critical",
     "explanation": "Bu risk seviyesini neden seçtiğinin 2-3 cümlelik açıklaması",
-    "suggestedAction": "İlgili ekibin atması gereken ilk ve en kritik adım",
-    "draftEmail": "Çevre Bakanlığı veya ilgili belediyeye gönderilecek resmi ihbar dilekçesi/e-posta taslağı (Türkçe, resmi dil)"
+    "suggestedAction": "İlgili ekibin atması gereken ilk ve en kritik adım"
   }
 
   Rapor:

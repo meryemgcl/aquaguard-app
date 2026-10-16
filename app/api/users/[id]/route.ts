@@ -1,32 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findUserById, updateUser, deleteUser } from '@/lib/users';
-import { verifyToken } from '@/lib/auth';
-import { UserRole, AccountStatus } from '@/lib/types';
+import { UserRole } from '@/lib/types';
 import { sendAccountStatusMail } from '@/lib/email';
+import { requireApiUser } from '@/lib/api-auth';
+import { canManageTargetRole, USER_ADMIN_ROLES } from '@/lib/permissions';
+import { isRecord } from '@/lib/validation';
 
 const VALID_ROLES: UserRole[] = ['super_admin', 'admin', 'uzman', 'yonetici', 'halk'];
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const payload = await verifyToken(token);
-    if (!payload || (payload.role !== 'super_admin' && payload.role !== 'admin')) {
-      return NextResponse.json({ error: 'Yalnızca yönetici hesapları rol onaylayabilir.' }, { status: 403 });
-    }
+    const auth = await requireApiUser(request, USER_ADMIN_ROLES);
+    if (!auth.user) return auth.response;
+    const actor = auth.user;
 
     const { id } = await params;
     const existingUser = await findUserById(id);
     if (!existingUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    const body = await request.json() as { role?: unknown; accountStatus?: unknown; decision?: unknown };
+    const body: unknown = await request.json();
+    if (!isRecord(body)) {
+      return NextResponse.json({ error: 'Geçersiz istek gövdesi.' }, { status: 400 });
+    }
     const role = body.role;
     const accountStatus = body.accountStatus;
     if (typeof role !== 'string' || !VALID_ROLES.includes(role as UserRole)) {
       return NextResponse.json({ error: 'Geçersiz rol.' }, { status: 400 });
     }
-    if (role === 'super_admin' || (role === 'admin' && payload.role !== 'super_admin')) {
-      return NextResponse.json({ error: 'Bu rolü yalnızca süper yönetici atayabilir.' }, { status: 403 });
+    if (!canManageTargetRole(actor.role, existingUser.role, role as UserRole)) {
+      return NextResponse.json({ error: 'Bu kullanıcı veya rol için yetkiniz yok.' }, { status: 403 });
     }
     if (accountStatus !== undefined && accountStatus !== 'active') {
       return NextResponse.json({ error: 'Geçersiz hesap durumu.' }, { status: 400 });
@@ -34,24 +35,33 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.decision !== undefined && body.decision !== 'approved' && body.decision !== 'rejected') {
       return NextResponse.json({ error: 'Geçersiz başvuru kararı.' }, { status: 400 });
     }
+    const previousStatus = existingUser.accountStatus ?? 'active';
+    if (body.decision !== undefined && previousStatus !== 'pending') {
+      return NextResponse.json({ error: 'Yalnızca bekleyen rol başvuruları karara bağlanabilir.' }, { status: 409 });
+    }
+    if (previousStatus === 'pending' && body.decision === undefined) {
+      return NextResponse.json({ error: 'Bekleyen rol başvurusu için onay veya ret kararı gereklidir.' }, { status: 400 });
+    }
+    if (body.decision === 'approved' && role !== existingUser.requestedRole) {
+      return NextResponse.json({ error: 'Başvuru yalnızca istenen rolle onaylanabilir.' }, { status: 400 });
+    }
     if (body.decision === 'rejected' && (role !== 'halk' || accountStatus !== 'active')) {
       return NextResponse.json({ error: 'Reddedilen rol başvurusu vatandaş erişimiyle etkin kalmalıdır.' }, { status: 400 });
     }
-    if (existingUser.id === payload.userId) {
+    if (existingUser.id === actor.userId) {
       return NextResponse.json({ error: 'Kendi hesabınızın rolünü veya durumunu değiştiremezsiniz.' }, { status: 403 });
     }
 
     const finalRole = role as UserRole;
     const updated = await updateUser(id, {
       role: finalRole,
-      accountStatus: 'active' as AccountStatus,
+      accountStatus: 'active',
       requestedRole: undefined,
     });
     if (!updated) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const previousStatus = existingUser.accountStatus ?? 'active';
     const statusChanged = previousStatus !== updated.accountStatus;
     const roleChanged = existingUser.role !== updated.role;
     const applicationWasPending = previousStatus === 'pending';
@@ -75,15 +85,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const payload = await verifyToken(token);
-    if (!payload || (payload.role !== 'admin' && payload.role !== 'super_admin')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const auth = await requireApiUser(request, USER_ADMIN_ROLES);
+    if (!auth.user) return auth.response;
 
     const { id } = await params;
+    const existingUser = await findUserById(id);
+    if (!existingUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (!canManageTargetRole(auth.user.role, existingUser.role) || existingUser.id === auth.user.userId) {
+      return NextResponse.json({ error: 'Bu kullanıcıyı silmek için yetkiniz yok.' }, { status: 403 });
+    }
 
     const success = await deleteUser(id);
     if (!success) {

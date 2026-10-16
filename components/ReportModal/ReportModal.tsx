@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { KanbanCard } from '@/lib/kanban';
+import { KanbanCard } from '@/lib/kanban-types';
 
 interface Props {
   isOpen: boolean;

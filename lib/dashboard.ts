@@ -1,223 +1,174 @@
-/* ============================================================
-   AquaGuard — Dashboard Data Store
-   Stats, map markers, chart data
-   ============================================================ */
+import 'server-only';
 
-export interface MapMarker {
-  id: string;
-  location: string;
-  lat: number;
-  lng: number;
-  riskScore: number;
-  riskLevel: 'low' | 'medium' | 'high' | 'critical';
-  riskColor: string;
-  lastMeasurement: string;
-  params: {
-    ph: number;
-    turbidity: number;
-    dissolvedO2: number;
-    temperature: number;
+import { getCards } from '@/lib/kanban';
+import type { DashboardData } from '@/lib/dashboard-types';
+import { toIncidentMapMarker } from '@/lib/incident-map';
+import type { WaterIncidentCategory } from '@/lib/types';
+import database from '@/lib/local-db';
+
+const incidentCategories: WaterIncidentCategory[] = [
+  'endüstriyel atık',
+  'evsel atık',
+  'balık ölümü',
+  'renk/koku değişimi',
+];
+
+const categoryColors = ['#eb5757', '#2f80ed', '#f2c94c', '#ff6b35'];
+
+export function getDashboardData(includeWorkflowDetails = true): DashboardData {
+  const allCards = getCards();
+  const cards = includeWorkflowDetails ? allCards : allCards.filter(card => card.column === 'yayinlandi');
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const publishedThisMonth = cards.filter(card => card.column === 'yayinlandi' && card.updatedAt >= monthStart).length;
+  const pendingApproval = cards.filter(card => ['onay-uzman', 'onay-yonetici'].includes(card.column)).length;
+  const assessedCards = cards.filter(card => card.riskAssessed);
+  const avgRiskScore = assessedCards.length
+    ? Math.round(assessedCards.reduce((sum, card) => sum + card.riskScore, 0) / assessedCards.length)
+    : null;
+  const criticalPending = cards.filter(card =>
+    card.riskAssessed && card.riskLevel === 'critical' &&
+    ['yeni', 'ai-analiz', 'onay-uzman', 'onay-yonetici'].includes(card.column),
+  ).length;
+  const responseDurations = cards.flatMap(card => {
+    const firstExpertAction = card.auditTrail.find(event =>
+      event.role === 'uzman' &&
+      event.previousStatus === 'yeni_ihbar' &&
+      event.newStatus === 'uzman_incelemesinde',
+    );
+    if (!firstExpertAction) return [];
+    const startedAt = Date.parse(card.createdAt);
+    const reviewedAt = Date.parse(firstExpertAction.timestamp);
+    return Number.isFinite(startedAt) && Number.isFinite(reviewedAt) && reviewedAt >= startedAt
+      ? [(reviewedAt - startedAt) / (60 * 60 * 1000)]
+      : [];
+  });
+  const averageResponseHours = responseDurations.length
+    ? Math.round(responseDurations.reduce((sum, hours) => sum + hours, 0) / responseDurations.length * 10) / 10
+    : null;
+
+  const months = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - 6 + index, 1);
+    const start = date.toISOString();
+    const end = new Date(date.getFullYear(), date.getMonth() + 1, 1).toISOString();
+    const reports = cards.filter(card => card.createdAt >= start && card.createdAt < end);
+    return {
+      month: date.toLocaleDateString('tr-TR', { month: 'short' }),
+      reports: reports.length,
+    };
+  });
+
+  const statusColors: Record<string, string> = {
+    yeni: '#00d4ff',
+    'ai-analiz': '#6e8efb',
+    'onay-uzman': '#f59e0b',
+    'onay-yonetici': '#f59e0b',
+    yayinlandi: '#00ff88',
+    reddedildi: '#ff4444',
   };
-}
-
-export interface MonthlyTrend {
-  month: string;
-  risk: number;
-  reports: number;
-}
-
-export interface RegionData {
-  region: string;
-  count: number;
-  color: string;
-}
-
-export interface StatusData {
-  name: string;
-  value: number;
-  color: string;
-}
-
-export interface AlertItem {
-  id: string;
-  title: string;
-  location: string;
-  severity: 'critical' | 'high' | 'medium';
-  metric: string;
-  value: string;
-  delta: string;
-  action: string;
-  eta: string;
-}
-
-export interface ExportRow {
-  location: string;
-  riskLevel: string;
-  lastMeasurement: string;
-  ph: number;
-  turbidity: number;
-  dissolvedO2: number;
-  temperature: number;
-}
-
-export interface DashboardData {
-  stats: {
-    totalReports: number;
-    pendingApproval: number;
-    avgRiskScore: number;
-    publishedThisMonth: number;
-    totalReportsTrend: number;
-    publishedTrend: number;
-    activeAlerts: number;
-    dataFreshness: string;
+  const statusNames: Record<string, string> = {
+    yeni: 'Yeni',
+    'ai-analiz': 'AI Analiz',
+    'onay-uzman': 'Uzman Onayı',
+    'onay-yonetici': 'Yönetici Onayı',
+    yayinlandi: 'Yayınlandı',
+    reddedildi: 'Reddedildi',
   };
-  markers: MapMarker[];
-  monthlyTrend: MonthlyTrend[];
-  regionData: RegionData[];
-  statusData: StatusData[];
-  recentActivity: {
-    id: string;
-    text: string;
-    highlight: string;
-    time: string;
-    color: string;
-  }[];
-  alerts: AlertItem[];
-  exportRows: ExportRow[];
-}
+  const statusData = Object.entries(statusNames).map(([column, name]) => ({
+    name,
+    value: cards.filter(card => card.column === column).length,
+    color: statusColors[column],
+  }));
 
-/* ── Map marker data (real Turkish water bodies) ── */
-const markers: MapMarker[] = [
-  {
-    id: 'm1', location: 'Ergene Nehri, Tekirdağ',
-    lat: 41.28, lng: 27.51, riskScore: 78, riskLevel: 'high', riskColor: '#ff6b35',
-    lastMeasurement: '2026-07-17', params: { ph: 4.2, turbidity: 12, dissolvedO2: 4.8, temperature: 22 },
-  },
-  {
-    id: 'm2', location: 'Sapanca Gölü, Sakarya',
-    lat: 40.69, lng: 30.28, riskScore: 85, riskLevel: 'critical', riskColor: '#ff4444',
-    lastMeasurement: '2026-07-16', params: { ph: 7.1, turbidity: 3, dissolvedO2: 1.8, temperature: 19 },
-  },
-  {
-    id: 'm3', location: 'Melen Çayı, Düzce',
-    lat: 40.84, lng: 31.17, riskScore: 18, riskLevel: 'low', riskColor: '#00ff88',
-    lastMeasurement: '2026-07-15', params: { ph: 7.4, turbidity: 2, dissolvedO2: 8.5, temperature: 16 },
-  },
-  {
-    id: 'm4', location: 'Gediz Havzası, İzmir',
-    lat: 38.72, lng: 27.18, riskScore: 58, riskLevel: 'medium', riskColor: '#f59e0b',
-    lastMeasurement: '2026-07-14', params: { ph: 6.8, turbidity: 8, dissolvedO2: 5.2, temperature: 24 },
-  },
-  {
-    id: 'm5', location: 'Kızılırmak, Kırıkkale',
-    lat: 39.85, lng: 33.52, riskScore: 22, riskLevel: 'low', riskColor: '#00ff88',
-    lastMeasurement: '2026-07-17', params: { ph: 7.8, turbidity: 4, dissolvedO2: 7.2, temperature: 18 },
-  },
-  {
-    id: 'm6', location: 'Büyük Menderes, Aydın',
-    lat: 37.85, lng: 27.84, riskScore: 65, riskLevel: 'high', riskColor: '#ff6b35',
-    lastMeasurement: '2026-07-13', params: { ph: 5.9, turbidity: 15, dissolvedO2: 4.1, temperature: 26 },
-  },
-  {
-    id: 'm7', location: 'Terkos Gölü, İstanbul',
-    lat: 41.35, lng: 28.62, riskScore: 42, riskLevel: 'medium', riskColor: '#f59e0b',
-    lastMeasurement: '2026-07-16', params: { ph: 7.2, turbidity: 6, dissolvedO2: 6.1, temperature: 21 },
-  },
-  {
-    id: 'm8', location: 'Burdur Gölü, Burdur',
-    lat: 37.72, lng: 30.18, riskScore: 91, riskLevel: 'critical', riskColor: '#ff4444',
-    lastMeasurement: '2026-07-12', params: { ph: 9.1, turbidity: 18, dissolvedO2: 2.3, temperature: 28 },
-  },
-  {
-    id: 'm9', location: 'Çoruh Nehri, Artvin',
-    lat: 41.18, lng: 41.82, riskScore: 15, riskLevel: 'low', riskColor: '#00ff88',
-    lastMeasurement: '2026-07-17', params: { ph: 7.6, turbidity: 1.5, dissolvedO2: 9.2, temperature: 14 },
-  },
-  {
-    id: 'm10', location: 'Seyhan Barajı, Adana',
-    lat: 37.05, lng: 35.35, riskScore: 35, riskLevel: 'medium', riskColor: '#f59e0b',
-    lastMeasurement: '2026-07-15', params: { ph: 7.0, turbidity: 5, dissolvedO2: 6.8, temperature: 23 },
-  },
-];
+  const dataFreshness = cards.reduce<string | null>((latest, card) =>
+    latest === null || card.updatedAt > latest ? card.updatedAt : latest, null);
 
-/* ── Monthly trend data ── */
-const monthlyTrend: MonthlyTrend[] = [
-  { month: 'Oca', risk: 28, reports: 18 },
-  { month: 'Şub', risk: 32, reports: 22 },
-  { month: 'Mar', risk: 25, reports: 28 },
-  { month: 'Nis', risk: 38, reports: 35 },
-  { month: 'May', risk: 42, reports: 31 },
-  { month: 'Haz', risk: 55, reports: 40 },
-  { month: 'Tem', risk: 48, reports: 38 },
-];
+  const categoryDistribution = incidentCategories.map((category, index) => ({
+    category,
+    count: cards.filter(card => card.incidentCategory === category).length,
+    color: categoryColors[index],
+  }));
 
-/* ── Region breakdown ── */
-const regionData: RegionData[] = [
-  { region: 'Marmara', count: 68, color: '#00d4ff' },
-  { region: 'Ege', count: 45, color: '#6e8efb' },
-  { region: 'İç Anadolu', count: 38, color: '#00ff88' },
-  { region: 'Karadeniz', count: 32, color: '#f59e0b' },
-  { region: 'Akdeniz', count: 28, color: '#a777e3' },
-  { region: 'Doğu', count: 22, color: '#ff6b6b' },
-  { region: 'G.Doğu', count: 14, color: '#ff9f43' },
-];
+  const regionCounts = new Map<string, { province: string; district: string; count: number }>();
+  let unclassifiedRegionCount = 0;
+  for (const card of cards) {
+    const province = card.province?.trim();
+    const district = card.district?.trim();
+    if (!province || !district) {
+      unclassifiedRegionCount += 1;
+      continue;
+    }
+    const key = `${province.toLocaleLowerCase('tr-TR')}|${district.toLocaleLowerCase('tr-TR')}`;
+    const existing = regionCounts.get(key);
+    if (existing) existing.count += 1;
+    else regionCounts.set(key, { province, district, count: 1 });
+  }
+  const regionData = [...regionCounts.values()]
+    .sort((a, b) => b.count - a.count || a.province.localeCompare(b.province, 'tr') || a.district.localeCompare(b.district, 'tr'))
+    .slice(0, 5);
+  const palette = ['#2f80ed', '#6e8efb', '#00ff88', '#f2c94c', '#a777e3'];
+  const locationData = regionData.map((region, index) => ({
+    location: `${region.district}, ${region.province}`,
+    count: region.count,
+    color: palette[index % palette.length],
+  }));
 
-/* ── Status distribution ── */
-const statusData: StatusData[] = [
-  { name: 'Yayınlandı', value: 142, color: '#00ff88' },
-  { name: 'Onay Bekliyor', value: 38, color: '#f59e0b' },
-  { name: 'AI Analiz', value: 24, color: '#6e8efb' },
-  { name: 'Reddedildi', value: 18, color: '#ff4444' },
-  { name: 'Yeni', value: 25, color: '#00d4ff' },
-];
+  const markers = cards.flatMap(card => {
+    const marker = toIncidentMapMarker(card);
+    return marker ? [marker] : [];
+  });
 
-/* ── Recent activity ── */
-const recentActivity = [
-  { id: 'a1', text: 'Burdur Gölü raporu', highlight: 'kritik seviye — acil inceleme', time: '12 dk önce', color: '#ff4444' },
-  { id: 'a2', text: 'Sapanca Gölü raporu', highlight: 'yönetici onayı bekleniyor', time: '1 saat önce', color: '#f59e0b' },
-  { id: 'a3', text: 'Melen Çayı raporu', highlight: 'yayınlandı', time: '2 saat önce', color: '#00ff88' },
-  { id: 'a4', text: 'Ergene Nehri raporu', highlight: 'reddedildi — düzeltme maili gönderildi', time: '4 saat önce', color: '#ff4444' },
-  { id: 'a5', text: 'AI analiz:', highlight: 'Çoruh Nehri tüm parametreler normal', time: '5 saat önce', color: '#00d4ff' },
-  { id: 'a6', text: '3 yeni kullanıcı', highlight: 'sisteme kaydoldu', time: '1 gün önce', color: '#6e8efb' },
-];
-
-const alerts: AlertItem[] = [
-  { id: 'alert-1', title: 'Çözüm süresi kritik', location: 'Burdur Gölü', severity: 'critical', metric: 'Risk skoru', value: '91/100', delta: '+12%', action: 'Acil ekip ataması', eta: '45 dk' },
-  { id: 'alert-2', title: 'Su kalitesi bozulması', location: 'Sapanca Gölü', severity: 'high', metric: 'DO', value: '1.8 mg/L', delta: '-2.1', action: 'Gözlem planla', eta: '2 sa' },
-  { id: 'alert-3', title: 'Tüketim artışı', location: 'Gediz Havzası', severity: 'medium', metric: 'Tüketim', value: '18%', delta: '+5.4%', action: 'Kayıp kontrolü', eta: '1 gün' },
-];
-
-const exportRows: ExportRow[] = markers.map(marker => ({
-  location: marker.location,
-  riskLevel: marker.riskLevel,
-  lastMeasurement: marker.lastMeasurement,
-  ph: marker.params.ph,
-  turbidity: marker.params.turbidity,
-  dissolvedO2: marker.params.dissolvedO2,
-  temperature: marker.params.temperature,
-}));
-
-/* ── Export ── */
-export function getDashboardData(): DashboardData {
-  const avgRisk = Math.round(markers.reduce((s, m) => s + m.riskScore, 0) / markers.length);
+  const stationCount = (database.prepare('SELECT COUNT(*) AS count FROM stations').get() as { count: number }).count;
+  const alerts = cards
+    .filter(card => card.riskAssessed && (card.riskLevel === 'critical' || card.riskLevel === 'high'))
+    .slice(0, 5)
+    .map(card => ({
+      id: `alert-${card.id}`,
+      title: card.riskLevel === 'critical' ? 'Kritik riskli rapor' : 'Yüksek riskli rapor',
+      location: card.location,
+      severity: card.riskLevel as 'critical' | 'high',
+      metric: 'Risk skoru',
+      value: `${card.riskScore}/100`,
+      delta: 'İnceleme gerekli',
+      action: 'Raporu incele',
+      eta: 'Açık',
+    }));
 
   return {
     stats: {
-      totalReports: 247,
-      pendingApproval: 12,
-      avgRiskScore: avgRisk,
-      publishedThisMonth: 38,
-      totalReportsTrend: 12,
-      publishedTrend: 8,
+      totalReports: cards.length,
+      pendingApproval,
+      avgRiskScore,
+      publishedThisMonth,
       activeAlerts: alerts.length,
-      dataFreshness: '12 dk',
+      dataFreshness: dataFreshness ?? 'Henüz veri yok',
+      criticalPending,
+      averageResponseHours,
     },
     markers,
-    monthlyTrend,
+    monthlyTrend: months,
+    locationData,
+    categoryDistribution,
     regionData,
+    unclassifiedRegionCount,
     statusData,
-    recentActivity,
+    recentActivity: cards.slice(0, 6).map(card => ({
+      id: card.id,
+      text: card.title,
+      highlight: statusNames[card.column],
+      time: new Date(card.updatedAt).toLocaleString('tr-TR'),
+      color: statusColors[card.column],
+    })),
     alerts,
-    exportRows,
+    exportRows: cards.map(card => ({
+      location: card.location,
+      riskLevel: card.riskLevel,
+      reportedAt: card.createdAt,
+      ph: card.measurements?.ph ?? null,
+      turbidity: card.measurements?.turbidity ?? null,
+      dissolvedO2: card.measurements?.dissolvedO2 ?? null,
+      temperature: card.measurements?.temperature ?? null,
+    })),
+    stationCount,
   };
 }

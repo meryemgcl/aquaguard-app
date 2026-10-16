@@ -1,8 +1,4 @@
-'use client';
-
-import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { KanbanCard } from '@/lib/kanban';
+import { KanbanCard } from '@/lib/kanban-types';
 import { UserRole } from '@/lib/types';
 import KanbanCardComponent from './KanbanCard';
 import styles from './Kanban.module.css';
@@ -21,11 +17,9 @@ export default function KanbanColumn({
   column, cards, movingCard,
   userRole, onApprove, onReject, onDetail,
 }: Props) {
-  const { setNodeRef, isOver } = useDroppable({ id: column.id });
-
   return (
     <div
-      className={`${styles.column} ${isOver ? styles.columnOver : ''}`}
+      className={styles.column}
       style={{ '--col-color': column.color, '--col-glow': column.glow } as React.CSSProperties}
     >
       <div className={styles.columnAccent}
@@ -42,16 +36,12 @@ export default function KanbanColumn({
         </span>
       </div>
 
-      <SortableContext items={cards.map(c => c.id)} strategy={verticalListSortingStrategy}>
-        <div
-          ref={setNodeRef}
-          className={`${styles.cardList} ${isOver ? styles.cardListOver : ''}`}
-        >
+        <div className={styles.cardList}>
           {cards.length === 0 ? (
             <div className={styles.emptyCol}>
               <span className={styles.emptyIcon} style={{ color: column.color }}>{column.icon}</span>
               <p>Kart yok</p>
-              <p className={styles.emptyHint}>Buraya sürükleyin</p>
+              <p className={styles.emptyHint}>İşlem için ihbarı açın</p>
             </div>
           ) : (
             cards.map(card => (
@@ -67,7 +57,6 @@ export default function KanbanColumn({
             ))
           )}
         </div>
-      </SortableContext>
     </div>
   );
 }

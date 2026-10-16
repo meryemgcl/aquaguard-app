@@ -38,7 +38,7 @@
 
   --text-primary: #f0f4ff;
   --text-secondary: #8892a8;
-  --text-muted: #555f75;
+  --text-muted: #9aa6bf;
   --text-accent: #00d4ff;
 
   --border: rgba(255, 255, 255, 0.08);
@@ -887,6 +887,32 @@ body::before {
     background: white;
     color: black;
   }
+
+  @media (pointer: coarse) {
+    button,
+    a,
+    input,
+    select,
+    textarea {
+      scroll-margin-block: 1rem;
+    }
+
+    button,
+    a {
+      min-height: 44px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
   .no-print {
     display: none !important;
   }
@@ -894,4 +920,3 @@ body::before {
     display: block !important;
   }
 }
-

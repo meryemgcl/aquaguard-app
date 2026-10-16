@@ -8,6 +8,149 @@
   gap: 1.5rem;
 }
 
+.contextBar,
+.roleActions,
+.mapEmptyState {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+}
+
+.contextBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+  padding: 0.75rem 1rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.roleActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+}
+
+.radarAlarm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid #dc262677;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(100deg, #dc262622, var(--bg-card));
+}
+
+.radarAlarm strong { color: #ff7777; }
+.radarAlarm p { margin: 0.35rem 0 0; color: var(--text-secondary); font-size: .84rem; }
+.radarAlarm a { color: #ffaaaa; font-weight: 700; white-space: nowrap; }
+.radarError { margin: 0; color: #ffaaaa; font-size: .82rem; }
+.dashboardExport { display: flex; justify-content: flex-end; margin-top: -1rem; }
+
+.roleActions > div {
+  flex: 1;
+}
+
+.roleActions h2 {
+  font-size: 1rem;
+}
+
+.roleActions p {
+  margin-top: 0.2rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.stationAlerts {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  padding: var(--space-md);
+}
+
+.stationAlertsHeader,
+.stationAlert,
+.alertActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.stationAlertsHeader h2 {
+  font-size: 1rem;
+}
+
+.stationAlertsHeader p,
+.stationAlert span,
+.alertState {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.stationAlertList {
+  list-style: none;
+  margin: var(--space-sm) 0 0;
+  padding: 0;
+}
+
+.stationAlert {
+  border-top: 1px solid var(--border);
+  padding: var(--space-sm) 0;
+}
+
+.stationAlert > div:first-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.severityBadge {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  text-transform: uppercase;
+}
+
+.severity_critical { color: #ff5b5b; }
+.severity_high { color: #ff8a45; }
+.severity_medium { color: #e8ae36; }
+.severity_low { color: #57b879; }
+
+.alertActions button,
+.exportLink {
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.7rem;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  text-decoration: none;
+}
+
+.alertActions button:hover,
+.exportLink:hover {
+  border-color: var(--accent);
+}
+
+.alertState {
+  margin-top: var(--space-sm);
+}
+
+.mapEmptyState {
+  padding: var(--space-xl);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
 .loadingState {
   display: flex;
   flex-direction: column;
@@ -33,6 +176,10 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
+}
+
+.citizenStatsGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .statCard {
@@ -142,6 +289,95 @@
   height: 100%;
   border-radius: 2px;
   transition: width 0.8s ease;
+}
+
+.operationalMetrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.operationalMetric,
+.operationalPanel {
+  min-width: 0;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+}
+
+.operationalMetric {
+  display: grid;
+  gap: 0.35rem;
+  border-left: 3px solid #eb5757;
+}
+
+.operationalMetric:nth-child(2) {
+  border-left-color: #2f80ed;
+}
+
+.operationalMetric span,
+.operationalPanel h2 {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.operationalMetric strong {
+  color: var(--text-primary);
+  font-size: 1.8rem;
+  line-height: 1.15;
+}
+
+.operationalMetric small,
+.operationalEmpty {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.operationalBreakdown {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.operationalPanel {
+  display: grid;
+  align-content: start;
+  gap: 0.7rem;
+}
+
+.operationalPanel h2 {
+  margin-bottom: 0.15rem;
+  color: var(--text-primary);
+}
+
+.breakdownRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.breakdownRow span {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.breakdownRow i {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.breakdownRow strong {
+  color: var(--text-primary);
 }
 
 /* ── Map Section ── */
@@ -420,6 +656,20 @@
 }
 
 @media (max-width: 600px) {
+  .operationalMetrics,
+  .operationalBreakdown {
+    grid-template-columns: 1fr;
+  }
+
+  .roleActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .roleActions > :global(.btn) {
+    width: 100%;
+  }
+
   .statsGrid { grid-template-columns: 1fr; }
   .mapLegend { flex-wrap: wrap; gap: 0.6rem; }
 }

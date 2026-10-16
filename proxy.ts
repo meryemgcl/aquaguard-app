@@ -1,29 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
+import { canAccessRoute, getApiAllowedRoles } from '@/lib/permissions';
 
-const PUBLIC_PAGES = ['/login', '/register'];
+const PUBLIC_PAGES = ['/login', '/register', '/embed/harita'];
+const OPEN_PAGES = ['/ihbar-takip'];
 const KNOWN_ROLES = ['super_admin', 'admin', 'uzman', 'yonetici', 'halk'];
-const STAFF_ROLES = ['super_admin', 'admin', 'uzman', 'yonetici'];
-
 function getSecret() {
   const secret = process.env.JWT_SECRET;
   if (!secret || secret.length < 32) {
     throw new Error('JWT_SECRET ortam değişkeni tanımlı ve en az 32 karakter olmalıdır.');
   }
   return new TextEncoder().encode(secret);
-}
-
-function rolesForApi(pathname: string, method: string): string[] | null {
-  if (pathname === '/api/dashboard' || pathname === '/api/kanban') return STAFF_ROLES;
-  if (pathname === '/api/reports' && method === 'GET') return STAFF_ROLES;
-  if (pathname.startsWith('/api/kanban/approve') || pathname.startsWith('/api/kanban/reject')) return STAFF_ROLES;
-  if (pathname.startsWith('/api/v2/ai/')) return STAFF_ROLES;
-  if (pathname.startsWith('/api/mail/')) return ['super_admin', 'admin', 'yonetici'];
-  if (pathname === '/api/users') return ['super_admin', 'admin'];
-  if (pathname.startsWith('/api/users/')) {
-    return ['super_admin', 'admin'];
-  }
-  return null;
 }
 
 function apiError(message: string, status: number) {
@@ -40,6 +27,10 @@ export async function proxy(request: NextRequest) {
       pathname === '/api/auth/login' ||
       pathname === '/api/auth/register' ||
       pathname === '/api/cron/daily-report' ||
+      pathname === '/api/embed/harita' ||
+      pathname.startsWith('/api/export/') ||
+      (pathname === '/api/saha/queue' && request.method === 'GET') ||
+      pathname.startsWith('/api/public/incidents/') ||
       (pathname === '/api/auth/me' && request.method === 'POST')
     ) {
       return NextResponse.next();
@@ -71,7 +62,7 @@ export async function proxy(request: NextRequest) {
       return apiError('İki aşamalı doğrulama tamamlanmalı.', 403);
     }
 
-    const allowedRoles = rolesForApi(pathname, request.method);
+    const allowedRoles = getApiAllowedRoles(pathname);
     if (allowedRoles && !allowedRoles.includes(payload.role)) {
       return apiError('Bu işlem için yetkiniz yok.', 403);
     }
@@ -79,7 +70,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isPublicPage = PUBLIC_PAGES.includes(pathname);
+  const isPublicPage = PUBLIC_PAGES.includes(pathname) || OPEN_PAGES.includes(pathname);
   let isValidUser = false;
   if (token) {
     try {
@@ -95,8 +86,20 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (isValidUser && isPublicPage) {
+  if (isValidUser && PUBLIC_PAGES.includes(pathname)) {
     return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  if (isValidUser) {
+    try {
+      const { payload } = await jwtVerify(token!, getSecret());
+      if (typeof payload.role === 'string' && KNOWN_ROLES.includes(payload.role) &&
+          !canAccessRoute(payload.role as import('@/lib/types').UserRole, pathname)) {
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+    } catch {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
   }
 
   if (!isValidUser && !isPublicPage) {

@@ -4,35 +4,31 @@
    ============================================================ */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
 import { getCards } from '@/lib/kanban';
+import { requireApiUser } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const payload = await verifyToken(token);
-    if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    const auth = await requireApiUser(request);
+    if (!auth.user) return auth.response;
 
     const allCards = getCards();
-    const role = payload.role;
     let myTasks = [];
 
-    if (role === 'uzman') {
+    if (auth.user.role === 'super_admin' || auth.user.role === 'admin') {
+      myTasks = allCards;
+    } else if (auth.user.role === 'uzman') {
       // Uzman sees new, ai-analiz, and ones waiting for uzman approval
       myTasks = allCards.filter(c => ['yeni', 'ai-analiz', 'onay-uzman'].includes(c.column));
-    } else if (role === 'yonetici') {
+    } else if (auth.user.role === 'yonetici') {
       // Yonetici sees ones waiting for yonetici approval
       myTasks = allCards.filter(c => c.column === 'onay-yonetici');
-    } else if (role === 'admin') {
-      // Admin sees everything
-      myTasks = allCards;
     } else {
       // Halk sees only their own reports
-      myTasks = allCards.filter(c => c.creatorEmail === payload.email);
+      myTasks = allCards.filter(c => c.creatorEmail === auth.user.email);
     }
 
     // Sort by riskScore descending
