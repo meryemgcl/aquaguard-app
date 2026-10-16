@@ -1,0 +1,35 @@
+.backdrop {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: #050912cc;
+  backdrop-filter: blur(4px);
+}
+.dialog {
+  display: grid;
+  gap: 12px;
+  width: min(760px, 100%);
+  max-height: min(92vh, 900px);
+  overflow-y: auto;
+  padding: 21px;
+  border: 1px solid #344158;
+  border-radius: 18px;
+  background: #111a2b;
+  color: #e8edf7;
+  box-shadow: 0 24px 80px #0009;
+}
+.header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.header p { margin: 0 0 4px; color: #73a5ff; font-size: .67rem; font-weight: 800; letter-spacing: .1em; }
+.header h2 { margin: 0; font-size: 1.25rem; }
+.header button { width: 38px; height: 38px; border: 1px solid #35445b; border-radius: 9px; background: transparent; color: #c8d4e8; font-size: 1.4rem; cursor: pointer; }
+.description { margin: 0; color: #9eacc1; font-size: .84rem; line-height: 1.5; }
+.codeLabel { color: #c5d0e1; font-size: .8rem; font-weight: 700; }
+.dialog textarea { width: 100%; resize: vertical; padding: 11px; border: 1px solid #2e3d55; border-radius: 9px; background: #0b1220; color: #b6d4ff; font: 12px/1.5 ui-monospace, Consolas, monospace; }
+.copyButton { width: fit-content; min-height: 40px; padding: 0 15px; border: 0; border-radius: 9px; background: #2563eb; color: white; font-weight: 700; cursor: pointer; }
+.previewHeader { display: flex; justify-content: space-between; padding-top: 7px; color: #dce5f5; font-size: .82rem; }
+.previewHeader span { color: #8190a8; }
+.preview { width: 100%; height: 300px; border: 1px solid #344158; border-radius: 11px; background: #e5e7eb; }
+@media (max-width: 540px) { .dialog { padding: 15px; } .preview { height: 260px; } }

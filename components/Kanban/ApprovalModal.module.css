@@ -335,6 +335,120 @@
   scrollbar-color: rgba(255,255,255,0.08) transparent;
 }
 
+.printDocument {
+  display: none;
+}
+
+.printHeader {
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #17212b;
+  text-align: center;
+}
+
+.printHeader h1 {
+  margin: 0;
+  color: #111;
+  font-size: 20pt;
+}
+
+.printHeader p {
+  margin: 0.4rem 0 0;
+  color: #444;
+}
+
+.printSection {
+  margin-top: 1.1rem;
+  break-inside: avoid;
+}
+
+.printSection h2 {
+  margin: 0 0 0.45rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid #bbb;
+  color: #111;
+  font-size: 11pt;
+}
+
+.printGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem 1rem;
+}
+
+.printGrid dt {
+  color: #555;
+  font-size: 8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.printGrid dd {
+  margin: 0.1rem 0 0;
+  color: #111;
+  font-size: 10pt;
+  overflow-wrap: anywhere;
+}
+
+.printCoordinates {
+  grid-column: 1 / -1;
+}
+
+.printBody {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.printPhoto {
+  max-width: 100%;
+  max-height: 75mm;
+  object-fit: contain;
+}
+
+.printMeasurements {
+  width: 100%;
+  border-collapse: collapse;
+  color: #111;
+  font-size: 9pt;
+}
+
+.printMeasurements th,
+.printMeasurements td {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #999;
+  text-align: left;
+}
+
+.printMeasurements th {
+  background: #edf0f3;
+}
+
+.printSignatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2.2rem;
+  break-inside: avoid;
+}
+
+.printSignatures div {
+  display: grid;
+  gap: 0.35rem;
+  color: #111;
+  font-size: 9pt;
+}
+
+.printSignatures i {
+  height: 22mm;
+  border-bottom: 1px solid #555;
+}
+
+.printFooter {
+  display: block;
+  margin-top: 1rem;
+  color: #555;
+  font-size: 7pt;
+}
+
 /* ── Meta grid ── */
 .metaGrid {
   display: grid;
@@ -540,4 +654,65 @@
   .header { padding: 1.25rem; }
   .actions { padding: 1rem 1.25rem 1.25rem; }
   .metaGrid { grid-template-columns: 1fr; }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  :global(body *) {
+    visibility: hidden !important;
+  }
+
+  .backdrop {
+    position: static;
+    display: block;
+    padding: 0;
+    overflow: visible;
+    background: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .detailModal {
+    display: block;
+    width: auto;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
+    box-shadow: none;
+    animation: none;
+  }
+
+  .detailScroll {
+    display: none;
+  }
+
+  .printDocument,
+  .printDocument * {
+    visibility: visible !important;
+  }
+
+  .printDocument {
+    position: fixed;
+    inset: 0;
+    display: block;
+    width: 100%;
+    padding: 0;
+    background: #fff;
+    color: #111;
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+    line-height: 1.45;
+  }
+
+  .printDocument p {
+    margin: 0.35rem 0;
+    color: #222;
+  }
 }

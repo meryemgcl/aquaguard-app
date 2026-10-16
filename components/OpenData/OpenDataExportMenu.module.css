@@ -1,0 +1,36 @@
+.menu { position: relative; z-index: 20; }
+.menu summary {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 13px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  background: rgba(255,255,255,.04);
+  color: #dce5f5;
+  cursor: pointer;
+  font-size: .78rem;
+  font-weight: 700;
+  list-style: none;
+  white-space: nowrap;
+}
+.menu summary::-webkit-details-marker { display: none; }
+.menu summary::after { content: '⌄'; margin-left: 8px; color: #92a1b8; }
+.menu[open] summary { border-color: rgba(0,212,255,.4); }
+.options {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  display: grid;
+  gap: 4px;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 32px));
+  padding: 7px;
+  border: 1px solid #2a3850;
+  border-radius: 12px;
+  background: #111a2b;
+  box-shadow: 0 14px 36px #0008;
+}
+.options a { padding: 10px; border-radius: 7px; color: #dce5f5; font-size: .8rem; text-decoration: none; }
+.options a:hover, .options a:focus-visible { background: #1b2940; }
+.divider { padding: 8px 10px 3px; border-top: 1px solid #29364c; color: #8e9cb2; font-size: .67rem; text-transform: uppercase; letter-spacing: .04em; }

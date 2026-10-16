@@ -1,20 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import {
-  DndContext, DragEndEvent, DragOverEvent, DragStartEvent,
-  DragOverlay, PointerSensor, useSensor, useSensors, closestCorners,
-} from '@dnd-kit/core';
-import { KanbanCard, KanbanColumn, COLUMNS } from '@/lib/kanban';
+import { useSearchParams } from 'next/navigation';
+import { KanbanCard, COLUMNS, isCriticalSlaBreached } from '@/lib/kanban-types';
 import { useAuth } from '@/components/AuthProvider/AuthProvider';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import KanbanColumnComponent from './KanbanColumn';
-import KanbanCardComponent from './KanbanCard';
 import ApprovalModal from './ApprovalModal';
 import CardDetailModal from './CardDetailModal';
 import styles from './Kanban.module.css';
-import { trackEvent } from '@/lib/mixpanel';
 
 type ModalState =
   | { type: 'approve'; card: KanbanCard }
@@ -24,14 +17,13 @@ type ModalState =
 
 export default function KanbanBoard() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [cards, setCards] = useState<KanbanCard[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCard, setActiveCard] = useState<KanbanCard | null>(null);
-  const [movingCard, setMovingCard] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [modal, setModal] = useState<ModalState>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
-  // Sürükleme başlamadan önceki orijinal kolonu sakla (race condition fix)
-  const [dragOriginColumn, setDragOriginColumn] = useState<string | null>(null);
 
   /* ── Toast helper ── */
   const showToast = useCallback((msg: string, type: 'success' | 'error' = 'success') => {
@@ -39,165 +31,108 @@ export default function KanbanBoard() {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
-  /* ── Firebase onSnapshot for real-time cards ── */
+  /* ── Load local reports from the authenticated API ── */
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'reports'), (snapshot) => {
-      const fbCards: KanbanCard[] = [];
-      snapshot.forEach((doc) => {
-        fbCards.push(doc.data() as KanbanCard);
-      });
-      // Order by createdAt descending or leave as is
-      setCards(fbCards);
-      setLoading(false);
-    }, (error) => {
-      console.error('Firebase error:', error);
-      showToast('Kartlar yüklenemedi.', 'error');
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [showToast]);
-
-  /* ── DnD sensors ── */
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  );
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const card = cards.find(c => c.id === event.active.id);
-    setActiveCard(card ?? null);
-    // Orijinal kolonu kaydet — handleDragOver state'i değiştirmeden önce
-    setDragOriginColumn(card?.column ?? null);
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-    const activeId = active.id as string;
-    const overId = over.id as string;
-    const targetColumn = COLUMNS.find(c => c.id === overId)?.id
-      ?? cards.find(c => c.id === overId)?.column;
-    if (!targetColumn) return;
-    setCards(prev => prev.map(c =>
-      c.id === activeId ? { ...c, column: targetColumn as KanbanColumn } : c
-    ));
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveCard(null);
-
-    if (!over) {
-      // Bırakılmadıysa orijinal konuma geri döndür
-      if (dragOriginColumn) {
-        const cardId = active.id as string;
-        setCards(prev => prev.map(c =>
-          c.id === cardId ? { ...c, column: dragOriginColumn as KanbanColumn } : c
-        ));
+    let active = true;
+    const loadCards = async () => {
+      try {
+        const response = await fetch('/api/kanban', { cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Kartlar yüklenemedi.');
+        if (active) {
+          setCards(data.cards as KanbanCard[]);
+          setLoadError(null);
+        }
+      } catch (error) {
+        if (active) setLoadError(error instanceof Error ? error.message : 'Kartlar yüklenemedi.');
+      } finally {
+        if (active) setLoading(false);
       }
-      setDragOriginColumn(null);
-      return;
-    }
-
-    const cardId = active.id as string;
-    const overId = over.id as string;
-
-    // targetColumn: bırakılan alan sütun mu yoksa kart mı?
-    const targetColumn = COLUMNS.find(c => c.id === overId)?.id
-      ?? cards.find(c => c.id === overId)?.column;
-
-    // Orijinal kolonu dragOriginColumn'dan al (state race condition'ını önler)
-    const originCol = dragOriginColumn;
-    setDragOriginColumn(null);
-
-    if (!targetColumn || !originCol || originCol === targetColumn) return;
-
-    setMovingCard(cardId);
-    try {
-      // Firebase'e yaz
-      await updateDoc(doc(db, 'reports', cardId), {
-        column: targetColumn,
-        updatedAt: new Date().toISOString(),
-      });
-      
-      trackEvent('Kanban_Card_Moved', { cardId, from: originCol, to: targetColumn });
-    } catch (err) {
-      console.error('Firebase yazma hatası:', err);
-      // Hata olursa orijinal konuma geri döndür
-      setCards(prev => prev.map(c =>
-        c.id === cardId ? { ...c, column: originCol as KanbanColumn } : c
-      ));
-      showToast('Taşıma başarısız. Firebase bağlantısını kontrol edin.', 'error');
-    } finally {
-      setMovingCard(null);
-    }
-  };
+    };
+    void loadCards();
+    const interval = window.setInterval(loadCards, 15000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [showToast, reloadKey]);
 
   /* ── Approval handlers ── */
-  const handleApproveConfirm = async () => {
-    if (!modal || modal.type !== 'approve' || !user) return;
+  const handleApproveConfirm = async (note?: string) => {
+    if (!modal || modal.type !== 'approve') return;
     const { card } = modal;
-    setModal(null);
 
     const res = await fetch('/api/kanban/approve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        cardId: card.id,
-        actorName: user.name,
-        actorInitials: user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
-        actorColor: '#00d4ff',
-        role: user.role,
-      }),
+      body: JSON.stringify({ cardId: card.id, note }),
     });
-    const data = await res.json();
+    const data: unknown = await res.json();
 
-    if (data.success) {
-      setCards(prev => prev.map(c => c.id === card.id ? data.card : c));
-      showToast('✓ Rapor onaylandı. Bildirim maili gönderildi.');
-    } else {
-      showToast(data.message || 'Onay başarısız.', 'error');
+    if (!res.ok) {
+      const message = typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'string'
+        ? data.error
+        : 'Yayımlama başarısız.';
+      throw new Error(message);
     }
+    if (typeof data !== 'object' || data === null || !('success' in data) || data.success !== true) {
+      throw new Error('Sunucudan geçersiz yanıt alındı.');
+    }
+    setModal(null);
+    setReloadKey(key => key + 1);
+    showToast('İhbar kamuya açık olarak yayımlandı.');
   };
 
   const handleRejectConfirm = async (reason?: string) => {
-    if (!modal || modal.type !== 'reject' || !user) return;
+    if (!modal || modal.type !== 'reject') return;
     const { card } = modal;
-    setModal(null);
 
     const res = await fetch('/api/kanban/reject', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        cardId: card.id,
-        actorName: user.name,
-        actorInitials: user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
-        actorColor: '#ff4444',
-        role: user.role,
-        reason,
-      }),
+      body: JSON.stringify({ cardId: card.id, reason }),
     });
-    const data = await res.json();
+    const data: unknown = await res.json();
 
-    if (data.success) {
-      setCards(prev => prev.map(c => c.id === card.id ? data.card : c));
-      showToast('✗ Rapor reddedildi. Düzeltme daveti maili gönderildi.', 'error');
-    } else {
-      showToast(data.message || 'Red işlemi başarısız.', 'error');
+    if (!res.ok) {
+      const message = typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'string'
+        ? data.error
+        : 'İhbar kapatılamadı.';
+      throw new Error(message);
     }
+    if (typeof data !== 'object' || data === null || !('success' in data) || data.success !== true) {
+      throw new Error('Sunucudan geçersiz yanıt alındı.');
+    }
+    setModal(null);
+    setReloadKey(key => key + 1);
+    showToast('İhbar gerekçesiyle birlikte kapatıldı.');
   };
 
   /* ── Group cards by column ── */
+  const incidentIdsParam = searchParams.get('incidentIds');
+  const incidentIds = incidentIdsParam
+    ? new Set(incidentIdsParam.split(',').filter(Boolean))
+    : null;
+  const visibleCards = incidentIds ? cards.filter(card => incidentIds.has(card.id)) : cards;
   const cardsByColumn = COLUMNS.reduce<Record<string, KanbanCard[]>>((acc, col) => {
-    acc[col.id] = cards.filter(c => c.column === col.id);
+    acc[col.id] = visibleCards.filter(c => c.column === col.id);
     return acc;
   }, {});
 
-  if (loading) {
+  if (loading && cards.length === 0) {
     return (
-      <div className={styles.loadingState}>
-        <div className={styles.loadingSpinner} />
-        <p>Raporlar yükleniyor…</p>
+      <div className={styles.loadingState} role="status" aria-live="polite">
+        <div className={styles.loadingSpinner} aria-hidden="true" />
+        <p>Rapor inceleme kuyruğu yükleniyor…</p>
+      </div>
+    );
+  }
+
+  if (loadError && cards.length === 0) {
+    return (
+      <div className={styles.loadError} role="alert">
+        <p>{loadError}</p>
+        <button type="button" onClick={() => { setLoading(true); setReloadKey(key => key + 1); }}>Yeniden dene</button>
       </div>
     );
   }
@@ -210,62 +145,64 @@ export default function KanbanBoard() {
           <div className={styles.boardTitleGroup}>
             <h2 className={styles.boardTitle}>Rapor Yönetim Panosu</h2>
             <p className={styles.boardSubtitle}>
-              Raporları sürükleyerek taşıyın · Yetkili rolünüzle onay verebilirsiniz
+              {incidentIds
+                ? `${visibleCards.length} kümelenme ihbarı gösteriliyor · `
+                : 'İnceleme kuyruğu · '}
+              Yalnızca yetkili olduğunuz adımlarda işlem yapabilirsiniz
             </p>
           </div>
+          {loadError && <p className={styles.refreshWarning} role="status">Güncel veriler yenilenemedi: {loadError}</p>}
+          {incidentIds && <a className={styles.refreshWarning} href="/kanban">Küme filtresini temizle</a>}
+          {visibleCards.length === 0 && (incidentIds || cards.length > 0) && (
+            <p className={styles.emptyBoard} role="status">
+              {incidentIds ? 'Bu kümeye ait ihbar bulunamadı veya erişilebilir değil.' : 'Henüz rapor yok. Yeni bildirim geldiğinde inceleme kuyruğunda görünecek.'}
+            </p>
+          )}
           <div className={styles.boardStats}>
             <div className={styles.statPill}>
               <span className={styles.statDot} style={{ background: '#8892a8' }} />
-              {cards.length} Toplam
+              {visibleCards.length} Toplam
             </div>
             <div className={styles.statPill}>
               <span className={styles.statDot} style={{ background: '#ff4444' }} />
-              {cards.filter(c => c.riskLevel === 'critical').length} Kritik
+              {visibleCards.filter(c => c.riskAssessed && c.riskLevel === 'critical').length} Kritik
             </div>
+            {visibleCards.some(isCriticalSlaBreached) && (
+              <div className={styles.statPill} role="alert" style={{ color: '#ff7777', borderColor: '#a21d24' }}>
+                {visibleCards.filter(isCriticalSlaBreached).length} Gecikme Uyarısı
+              </div>
+            )}
             <div className={styles.statPill}>
               <span className={styles.statDot} style={{ background: '#00d4ff' }} />
-              {cards.filter(c => c.column === 'onay-uzman' || c.column === 'onay-yonetici').length} Bekleyen
+              {visibleCards.filter(c => c.column === 'onay-uzman' || c.column === 'onay-yonetici').length} Bekleyen
             </div>
             <div className={styles.statPill}>
               <span className={styles.statDot} style={{ background: '#00ff88' }} />
-              {cards.filter(c => c.column === 'yayinlandi').length} Yayında
+              {visibleCards.filter(c => c.column === 'yayinlandi').length} Yayında
             </div>
           </div>
         </div>
 
-        {/* Board */}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <div className={styles.board}>
-            {COLUMNS.map(col => (
-              <KanbanColumnComponent
-                key={col.id}
-                column={col}
-                cards={cardsByColumn[col.id] ?? []}
-                movingCard={movingCard}
-                userRole={user?.role}
-                onApprove={cardId => {
-                  const card = cards.find(c => c.id === cardId);
-                  if (card) setModal({ type: 'approve', card });
-                }}
-                onReject={cardId => {
-                  const card = cards.find(c => c.id === cardId);
-                  if (card) setModal({ type: 'reject', card });
-                }}
-                onDetail={card => setModal({ type: 'detail', card })}
-              />
-            ))}
-          </div>
-
-          <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.18,0.67,0.6,1.22)' }}>
-            {activeCard && <KanbanCardComponent card={activeCard} isDragging isOverlay />}
-          </DragOverlay>
-        </DndContext>
+        <div className={styles.board}>
+          {COLUMNS.map(col => (
+            <KanbanColumnComponent
+              key={col.id}
+              column={col}
+              cards={cardsByColumn[col.id] ?? []}
+              movingCard={null}
+              userRole={user?.role}
+              onApprove={cardId => {
+                const card = cards.find(c => c.id === cardId);
+                if (card) setModal({ type: 'approve', card });
+              }}
+              onReject={cardId => {
+                const card = cards.find(c => c.id === cardId);
+                if (card) setModal({ type: 'reject', card });
+              }}
+              onDetail={card => setModal({ type: 'detail', card })}
+            />
+          ))}
+        </div>
       </div>
 
       {/* ── Modals ── */}
@@ -289,8 +226,10 @@ export default function KanbanBoard() {
       )}
       {modal && modal.type === 'detail' && (
         <CardDetailModal
+          key={modal.card.id}
           card={modal.card}
           onClose={() => setModal(null)}
+          onWorkflowUpdated={() => setReloadKey(key => key + 1)}
         />
       )}
 

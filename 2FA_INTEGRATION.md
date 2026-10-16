@@ -17,7 +17,7 @@ npm install --save-dev @types/speakeasy @types/qrcode
 #### `lib/types.ts`
 User, SafeUser ve JWTPayload arayüzlerine 2FA alanları eklendi:
 - `twoFactorEnabled`: 2FA aktif mi?
-- `twoFactorSecret`: TOTP secret (şifreli)
+- `twoFactorSecret`: TOTP secret (yerel SQLite veritabanında)
 - `backupCodes`: Yedek kodlar
 - `twoFactorVerified`: JWT token'da 2FA doğrulandı mı?
 - `twoFactorChallenge`: Geçici token için challenge alanı
@@ -206,7 +206,7 @@ const setup2FA = async () => {
 1. **TOTP Standard**: RFC 6238 uyumlu
 2. **Yedek Kodlar**: Telefon kaybı durumunda erişim (10 kod, 1 kez kullanım)
 3. **Geçici Token**: 2FA challenge için 5 dakika geçerli
-4. **Bcrypt Hash**: TOTP secret ve backup codes Firestore'da hash'lenerek kaydedilir
+4. **Bcrypt Hash**: Yedek kodlar bcrypt ile hash'lenerek yerel SQLite veritabanında kaydedilir
 5. **Rate Limiting**: Login denemelerine mevcut rate limiting uygulanır
 
 ---
@@ -235,7 +235,7 @@ const setup2FA = async () => {
 
 - `NEXT_PUBLIC_*` ile başlayan yeni env variables yok
 - Mevcut `JWT_SECRET` kullanılıyor
-- Firestore schema uyumlu (backward compatible)
+- Yerel SQLite kullanıcı şemasıyla uyumlu
 - Production ortamında `TOTP_WINDOW=2` (±2 time window)
 
 ---

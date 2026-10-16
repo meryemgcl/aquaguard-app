@@ -7,6 +7,7 @@ import { Resend } from 'resend'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM = process.env.MAIL_FROM || 'AquaGuard <onboarding@resend.dev>'
+const APP_URL = process.env.APP_URL || 'http://localhost:3000'
 // Resend ücretsiz planda sadece doğrulanmış adrese gönderilebilir.
 // RESEND_TO_OVERRIDE doldurulursa tüm mailler o adrese yönlendirilir.
 const OVERRIDE = process.env.RESEND_TO_OVERRIDE || ''
@@ -29,7 +30,7 @@ async function sendMail(to: string, subject: string, html: string): Promise<{ ok
   const recipient = resolveRecipient(to)
 
   if (!resend) {
-    console.log(`[MAIL SIMULATED] To: ${recipient}\nSubject: ${subject}`)
+    console.info('[MAIL SIMULATED] Email was not sent because RESEND_API_KEY is not configured.')
     return { ok: true, simulated: true }
   }
 
@@ -110,7 +111,7 @@ export async function sendWelcomeMail(to: string, name: string, role: string) {
     ${infoText('AquaGuard platformuna hoş geldiniz! Hesabınız başarıyla oluşturulmuştur.')}
     ${boldRow('E-posta', escapeHtml(to))}
     ${boldRow('Rol', escapeHtml(roleLabels[role] || role), '#6e8efb')}
-    ${ctaButton('Platforma Giriş Yap', `${process.env.APP_URL || 'http://localhost:3000'}/login`, '#00d4ff')}
+    ${ctaButton('Platforma Giriş Yap', `${APP_URL}/login`, '#00d4ff')}
   `
   return sendMail(to, 'AquaGuard — Hesabınız Oluşturuldu 🎉', template('Hesabınıza Hoş Geldiniz', '#00d4ff', '🌊', body))
 }
@@ -137,7 +138,7 @@ export async function sendRoleRequestAdminMail(name: string, email: string, role
     ${boldRow('Başvuran', escapeHtml(name))}
     ${boldRow('E-posta', escapeHtml(email))}
     ${boldRow('Talep edilen rol', roleLabels[role], '#6e8efb')}
-    ${ctaButton('Kullanıcı Yönetimi', `${process.env.APP_URL || 'http://localhost:3000'}/kullanicilar`, '#00d4ff')}`
+    ${ctaButton('Kullanıcı Yönetimi', `${APP_URL}/kullanicilar`, '#00d4ff')}`
   return sendMail(adminEmail, 'AquaGuard — Yeni rol başvurusu', template('Yeni Rol Başvurusu', '#f59e0b', '📩', body))
 }
 
@@ -153,7 +154,7 @@ export async function sendAccountStatusMail(
        ${infoText('Hesabınız vatandaş rolüyle etkin kalır. Sorularınız için destek ekibiyle iletişime geçebilirsiniz.')}`
     : `${infoText(`Merhaba <strong style="color:#00d4ff;">${escapeHtml(name)}</strong>, ${status === 'approved' ? 'başvurunuz onaylandı.' : 'hesap rolünüz güncellendi.'}`)}
        ${boldRow('Etkin rolünüz', escapeHtml(roleName), '#00ff88')}
-       ${ctaButton('Giriş Yap', `${process.env.APP_URL || 'http://localhost:3000'}/login`, '#00d4ff')}`
+       ${ctaButton('Giriş Yap', `${APP_URL}/login`, '#00d4ff')}`
   const subject = status === 'approved'
     ? 'AquaGuard — Hesabınız onaylandı'
     : status === 'rejected' ? 'AquaGuard — Rol başvurusu sonucu' : 'AquaGuard — Rolünüz güncellendi'
@@ -174,7 +175,7 @@ export async function sendExpertApprovalMail(to: string, reportTitle: string, lo
     ${boldRow('Onaylayan Uzman', actorName, '#6e8efb')}
     ${boldRow('Durum', '1. Onay (Uzman) ✅ → Yönetici onayı bekleniyor', '#f59e0b')}
     ${infoText('Rapor artık Yönetici onay kuyruğuna alınmıştır. Yönetici onayından sonra ilgili kurumlara bildirim gönderilecektir.')}
-    ${ctaButton('Kanban Panosunu Görüntüle', 'http://localhost:3000/kanban', '#6e8efb')}
+    ${ctaButton('Kanban Panosunu Görüntüle', `${APP_URL}/kanban`, '#6e8efb')}
   `
   return sendMail(to, `[AquaGuard] Uzman Onayı: ${reportTitle}`, template('Uzman Onayı Verildi 🔬', '#6e8efb', '🔬', body))
 }
@@ -193,7 +194,7 @@ export async function sendManagerApprovalMail(to: string, reportTitle: string, l
       <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#00ff88;text-transform:uppercase;letter-spacing:0.06em;">Resmi Dilekçe / Bildirim Taslağı</p>
       <p style="margin:0;font-size:13px;color:#8892a8;line-height:1.8;white-space:pre-wrap;">${draftEmail}</p>
     </div>
-    ${ctaButton('Arşivi Görüntüle', 'http://localhost:3000/arsiv', '#00ff88')}
+    ${ctaButton('Arşivi Görüntüle', `${APP_URL}/arsiv`, '#00ff88')}
   `
   return sendMail(to, `[AquaGuard] Rapor Yayınlandı: ${reportTitle}`, template('Yönetici Onayı — Rapor Yayınlandı', '#00ff88', '✅', body))
 }
@@ -211,7 +212,7 @@ export async function sendRejectionMail(to: string, reportTitle: string, reason:
       <p style="margin:0;font-size:14px;color:#8892a8;line-height:1.7;">${reason}</p>
     </div>
     ${infoText('Eksiklikleri gidererek raporu yeniden oluşturabilirsiniz.')}
-    ${ctaButton('Yeni Rapor Oluştur', 'http://localhost:3000/kanban', '#ff4444')}
+    ${ctaButton('Yeni Rapor Oluştur', `${APP_URL}/kanban`, '#ff4444')}
   `
   return sendMail(to, `[AquaGuard] Rapor Reddedildi: ${reportTitle}`, template('Rapor Reddedildi ❌', '#ff4444', '❌', body))
 }
@@ -229,7 +230,7 @@ export async function sendCriticalAlertMail(to: string, location: string, parame
     ${boldRow('Ölçülen Değer', value, '#ff4444')}
     ${boldRow('Normal Aralık', normalRange, '#00ff88')}
     ${infoText('Bu değer kritik eşiği aşmıştır. Lütfen derhal ilgili birimi bilgilendirin ve saha ekibini bölgeye yönlendirin.')}
-    ${ctaButton('AI Analiz Panelini Aç', 'http://localhost:3000/ai-analiz', '#ff4444')}
+    ${ctaButton('AI Analiz Panelini Aç', `${APP_URL}/ai-analiz`, '#ff4444')}
   `
   return sendMail(to, `🚨 [AquaGuard] KRİTİK UYARI: ${location} — ${parameter}`, template('Kritik Su Kalitesi Uyarısı', '#ff4444', '🚨', body))
 }
@@ -267,8 +268,8 @@ export async function sendCitizenNotificationMail(
     }
 
     ${isApproved
-      ? ctaButton('Canlı Haritayı Görüntüle', 'https://aquaguard-app.vercel.app/harita', '#00d4ff')
-      : ctaButton('Yeni Rapor Oluştur', 'https://aquaguard-app.vercel.app', '#ff6b6b')
+      ? ctaButton('Canlı Haritayı Görüntüle', `${APP_URL}/harita`, '#00d4ff')
+      : ctaButton('Yeni Rapor Oluştur', `${APP_URL}`, '#ff6b6b')
     }
   `
 

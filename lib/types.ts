@@ -47,14 +47,54 @@ export interface AuthResponse {
   token?: string;
   user?: SafeUser;
 }
-export interface Report {
+export type WaterIncidentCategory =
+  | 'endüstriyel atık'
+  | 'evsel atık'
+  | 'balık ölümü'
+  | 'renk/koku değişimi';
+
+export type WaterIncidentStatus =
+  | 'yeni_ihbar'
+  | 'uzman_incelemesinde'
+  | 'dogrulandi'
+  | 'yonetici_onayinda'
+  | 'yayinda'
+  | 'reddedildi'
+  | 'gecersiz_ihbar'
+  | 'kapatildi';
+
+export interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+export interface WaterIncidentAuditEntry {
+  action: string;
+  performedBy: string;
+  role: UserRole;
+  timestamp: string;
+  note: string;
+}
+
+export interface WaterIncident {
   id: string;
+  trackingCode: string;
   title: string;
   description: string;
-  riskLevel: 'low' | 'medium' | 'high' | 'critical';
-  coordinates: { lat: number; lng: number };
-  createdAt: string;
-  updatedAt?: string;
+  category: WaterIncidentCategory;
+  coordinates: Coordinates;
+  addressText: string;
+  province: string | null;
+  district: string | null;
+  photos: string[];
+  reportedAt: string;
+  reporterEmail: string | null;
+  reporterPhone: string | null;
+  status: WaterIncidentStatus;
+  aiRiskScore: number | null;
+  expertNotes: string | null;
+  managerNotes: string | null;
+  auditTrail: WaterIncidentAuditEntry[];
 }
 
 /* Role display names & permissions */
@@ -76,12 +116,12 @@ export const ROLE_COLORS: Record<UserRole, string> = {
 
 /* Routes accessible by each role */
 export const ROLE_ROUTES: Record<UserRole, string[]> = {
-  super_admin: ['/', '/kanban', '/harita', '/ai-analiz', '/mail-sablonlari', '/kullanicilar', '/ayarlar', '/arsiv'],
-  admin: ['/', '/kanban', '/harita', '/ai-analiz', '/mail-sablonlari', '/kullanicilar', '/ayarlar', '/arsiv'],
-  uzman: ['/', '/kanban', '/harita', '/ai-analiz', '/arsiv'],
-  yonetici: ['/', '/kanban', '/harita', '/ai-analiz', '/mail-sablonlari', '/arsiv'],
-  halk: ['/', '/harita'],
+  super_admin: ['/', '/ihbar', '/ihbar-takip', '/raporlarim', '/kanban', '/harita', '/radar', '/saha', '/istasyonlar', '/ai-analiz', '/kullanicilar', '/ayarlar', '/arsiv', '/profil'],
+  admin: ['/', '/ihbar', '/ihbar-takip', '/raporlarim', '/kanban', '/harita', '/radar', '/saha', '/istasyonlar', '/ai-analiz', '/kullanicilar', '/ayarlar', '/arsiv', '/profil'],
+  uzman: ['/', '/ihbar', '/ihbar-takip', '/raporlarim', '/kanban', '/harita', '/radar', '/saha', '/istasyonlar', '/ai-analiz', '/ayarlar', '/arsiv', '/profil'],
+  yonetici: ['/', '/ihbar', '/ihbar-takip', '/raporlarim', '/kanban', '/harita', '/radar', '/istasyonlar', '/ai-analiz', '/ayarlar', '/arsiv', '/profil'],
+  halk: ['/', '/ihbar', '/ihbar-takip', '/raporlarim', '/harita', '/ayarlar', '/arsiv', '/profil'],
 };
 
 /* Public routes (no auth needed) */
-export const PUBLIC_ROUTES = ['/login', '/register'];
+export const PUBLIC_ROUTES = ['/login', '/register', '/ihbar-takip', '/embed/harita'];

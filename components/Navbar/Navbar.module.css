@@ -19,11 +19,44 @@
   z-index: var(--z-navbar);
 }
 
+@media (max-width: 420px) {
+  .pageTitle {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .right > :global(.btn) {
+    font-size: 0 !important;
+    width: 44px;
+    padding: 0 !important;
+  }
+
+  .right > :global(.btn) svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
 /* ── Left Side ── */
 .left {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  position: relative;
+  padding-left: 0;
+}
+
+.menuButton {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
 
 .pageTitle {
@@ -92,6 +125,18 @@
   gap: 0.75rem;
 }
 
+.menuButton {
+  display: inline-flex;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.left {
+  padding-left: 54px;
+}
+
 .right {
   gap: 0.5rem;
 }
@@ -107,35 +152,31 @@
 
 @media (max-width: 720px) {
 .navbar {
-  height: auto;
-  min-height: var(--navbar-height);
-  padding-block: 0.5rem;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  height: var(--navbar-height);
+  padding-inline: var(--space-sm);
 }
 
 .left,
 .right {
-  width: 100%;
+  width: auto;
 }
 
 .right {
-  justify-content: space-between;
-  flex-wrap: wrap;
+  gap: 0.35rem;
 }
 
 .searchWrapper {
-  flex: 1;
-  min-width: 0;
+  display: none;
 }
 
-.searchInput {
-  width: 100%;
+.right > :global(.btn) {
+  min-height: 44px;
+  padding-inline: 0.65rem !important;
 }
 
-.searchInput:focus {
-  width: 100%;
+.userBtn {
+  min-height: 44px;
+  padding-left: 4px;
 }
 
 .pageTitle {
@@ -143,7 +184,7 @@
 }
 
 .breadcrumb {
-  font-size: 0.68rem;
+  display: none;
 }
 
 .userBtnName {
@@ -169,6 +210,173 @@
 .searchInput:focus + .searchIcon,
 .searchWrapper:focus-within .searchIcon {
   color: var(--accent);
+}
+
+.searchResults {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(18, 24, 44, 0.97);
+  box-shadow: var(--shadow-lg);
+}
+
+.searchEmpty {
+  padding: 1rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.searchResult {
+  display: block;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.searchResult:hover,
+.searchResult:focus-visible {
+  background: var(--surface-alt);
+  color: var(--text-primary);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--space-md);
+  background: rgba(10, 15, 30, 0.86);
+  backdrop-filter: blur(8px);
+}
+
+.reportModal {
+  width: min(100%, 600px);
+  max-height: min(90vh, 820px);
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+}
+
+.reportModalHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+}
+
+.reportModalHeader h2 {
+  font-size: 1.1rem;
+}
+
+.reportModalHeader p {
+  margin-top: var(--space-xs);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.modalClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+}
+
+.reportForm {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+}
+
+.reportForm > label,
+.coordinateFields label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.reportForm > label:not(:first-child) {
+  margin-top: var(--space-sm);
+}
+
+.coordinateFields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.coordinateFields legend {
+  padding: 0 var(--space-xs);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.locationButton,
+.locationMessage {
+  grid-column: 1 / -1;
+}
+
+.locationButton {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--accent);
+}
+
+.locationMessage {
+  min-height: 1.2em;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.coordinateFields small {
+  grid-column: 1 / -1;
+  color: var(--text-secondary);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.menuButton:hover,
+.modalClose:hover {
+  background: var(--surface-alt);
+  color: var(--text-primary);
 }
 
 /* ── Notification Bell ── */

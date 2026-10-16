@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider/AuthProvider';
 import { ROLE_COLORS, ROLE_LABELS } from '@/lib/types';
-import { KanbanCard, COLUMNS } from '@/lib/kanban';
+import { KanbanCard, COLUMNS } from '@/lib/kanban-types';
 import styles from './page.module.css';
 
 /* ── Common Components ── */
@@ -181,31 +181,17 @@ function AdminDashboard({ tasks }: { tasks: KanbanCard[] }) {
         <h2 className={styles.sectionTitle}>👑 Sistem Genel Bakış</h2>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
           <div className={styles.statCard}>
-            <div className={styles.statIcon} style={{ color: '#00d4ff' }}>👥</div>
+            <div className={styles.statIcon} style={{ color: '#00ff88' }}>🔎</div>
             <div>
-              <div className={styles.statValue}>Aktif</div>
-              <div className={styles.statLabel}>Kullanıcı Servisi</div>
+              <div className={styles.statValue}>{tasks.filter(task => ['yeni', 'ai-analiz', 'onay-uzman', 'onay-yonetici'].includes(task.column)).length}</div>
+              <div className={styles.statLabel}>İnceleme Bekleyen İhbar</div>
             </div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.statIcon} style={{ color: '#6e8efb' }}>🤖</div>
-            <div>
-              <div className={styles.statValue}>Aktif</div>
-              <div className={styles.statLabel}>Gemini AI Servisi</div>
-            </div>
-          </div>
-          <div className={styles.statCard}>
-            <div className={styles.statIcon} style={{ color: '#f59e0b' }}>📧</div>
-            <div>
-              <div className={styles.statValue}>Aktif</div>
-              <div className={styles.statLabel}>Resend Mail Servisi</div>
-            </div>
-          </div>
-          <div className={styles.statCard}>
-            <div className={styles.statIcon} style={{ color: '#00ff88' }}>📋</div>
+            <div className={styles.statIcon} style={{ color: '#00d4ff' }}>📋</div>
             <div>
               <div className={styles.statValue}>{tasks.length}</div>
-              <div className={styles.statLabel}>Toplam Sistem Raporu</div>
+              <div className={styles.statLabel}>Toplam İhbar</div>
             </div>
           </div>
         </div>
@@ -221,9 +207,6 @@ function AdminDashboard({ tasks }: { tasks: KanbanCard[] }) {
         <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <button className="btn btn-primary" onClick={() => router.push('/kullanicilar')} style={{ width: '100%', justifyContent: 'center' }}>
             👥 Kullanıcıları Yönet
-          </button>
-          <button className="btn btn-ghost" onClick={() => router.push('/mail-sablonlari')} style={{ width: '100%', justifyContent: 'center', border: '1px solid var(--border)' }}>
-            📧 Mail Şablonları
           </button>
           <button className="btn btn-ghost" onClick={() => router.push('/ayarlar')} style={{ width: '100%', justifyContent: 'center', border: '1px solid var(--border)' }}>
             ⚙️ Sistem Ayarları

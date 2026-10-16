@@ -3,82 +3,50 @@
    ============================================================ */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { APPROVAL_ROLES, APPROVAL_NEXT, ApprovalRecord, KanbanCard, ApprovalRole } from '@/lib/kanban';
-import { requireApiUser, STAFF_ROLES } from '@/lib/api-auth';
-import { sendExpertApprovalMail, sendManagerApprovalMail, sendCitizenNotificationMail } from '@/lib/email';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { recordApproval, getCardById } from '@/lib/kanban';
+import { APPROVAL_ROLES, APPROVAL_NEXT } from '@/lib/kanban-types';
+import { requireApiUser } from '@/lib/api-auth';
+import { isRecord } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
-  const auth = await requireApiUser(request, STAFF_ROLES);
+  const auth = await requireApiUser(request, ['yonetici']);
   if (!auth.user) return auth.response;
 
   try {
     const payload = auth.user;
 
-    const body = await request.json() as { cardId?: string; draftEmail?: string };
-    const { cardId, draftEmail } = body;
-    if (!cardId) return NextResponse.json({ error: 'cardId gerekli.' }, { status: 400 });
+    const body: unknown = await request.json();
+    if (!isRecord(body) || typeof body.cardId !== 'string' || !body.cardId ||
+        (body.note !== undefined && (typeof body.note !== 'string' || body.note.length > 2000))) {
+      return NextResponse.json({ error: 'Geçersiz istek gövdesi veya cardId.' }, { status: 400 });
+    }
+    const cardId = body.cardId;
+    const note = typeof body.note === 'string' ? body.note.trim() : '';
 
-    const cardRef = doc(db, 'reports', cardId);
-    const cardSnap = await getDoc(cardRef);
-
-    if (!cardSnap.exists()) return NextResponse.json({ error: 'Kart bulunamadı.' }, { status: 404 });
-    const card = cardSnap.data() as KanbanCard;
+    const card = getCardById(cardId);
+    if (!card) return NextResponse.json({ error: 'Kart bulunamadı.' }, { status: 404 });
 
     const allowedRoles = APPROVAL_ROLES[card.column];
-    const currentRole = payload.role as ApprovalRole | undefined;
-    if (!allowedRoles || !currentRole || !allowedRoles.includes(currentRole)) {
+    if (payload.role !== 'yonetici' || !allowedRoles || !allowedRoles.includes(payload.role)) {
       return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
     }
 
     const nextCol = APPROVAL_NEXT[card.column];
     if (!nextCol) return NextResponse.json({ error: 'Sonraki asama bulunamadi.' }, { status: 400 });
 
-    const newApproval: ApprovalRecord = {
-      id: `appr-${Date.now()}`,
-      cardId,
+    const updatedCard = recordApproval(cardId, card.column, {
       action: 'approved',
-      role: currentRole,
+      role: 'yonetici',
       actorName: payload.name,
       actorInitials: payload.name.substring(0, 2).toUpperCase(),
       actorColor: '#6e8efb',
       columnFrom: card.column,
       columnTo: nextCol,
-      timestamp: new Date().toISOString()
-    };
-
-    await updateDoc(cardRef, {
-      column: nextCol,
-      updatedAt: new Date().toISOString(),
-      approvals: arrayUnion(newApproval)
+      reason: note || 'Yönetici tarafından yayımlanması onaylandı.',
     });
+    if (!updatedCard) return NextResponse.json({ error: 'Rapor eşzamanlı olarak değişti; yenileyip tekrar deneyin.' }, { status: 409 });
 
-    const updatedCard = { ...card, column: nextCol, approvals: [...(card.approvals || []), newApproval] };
-
-    // ── Mail bildirimleri ──────────────────────────────────────
-    const adminEmail = process.env.ADMIN_EMAIL || '';
-    const yoneticiEmail = process.env.YONETICI_EMAIL || '';
-
-    if (payload.role === 'uzman') {
-      sendExpertApprovalMail(adminEmail, card.title, card.location, payload.name).catch(console.error);
-      if (yoneticiEmail && yoneticiEmail !== adminEmail) {
-        sendExpertApprovalMail(yoneticiEmail, card.title, card.location, payload.name).catch(console.error);
-      }
-    } else if (payload.role === 'yonetici' || payload.role === 'admin') {
-      const draft = draftEmail || `${card.title} raporu onaylanmıştır.`;
-      sendManagerApprovalMail(adminEmail, card.title, card.location, payload.name, draft).catch(console.error);
-      if (card.creatorEmail && card.creatorEmail !== adminEmail) {
-        sendManagerApprovalMail(card.creatorEmail, card.title, card.location, payload.name, draft).catch(console.error);
-      }
-      
-      // Vatandaşa nihai onay bildirimi (Yayınlandı)
-      if (nextCol === 'yayinlandi' && card.creatorEmail && card.creatorEmail !== 'yeni@aquaguard.com') {
-        sendCitizenNotificationMail(card.creatorEmail, card.title, card.location, 'approved').catch(console.error);
-      }
-    }
-
-    return NextResponse.json({ success: true, card: updatedCard, message: `Onaylandı. İlgili taraflara e-posta gönderildi.` });
+    return NextResponse.json({ success: true, message: 'İhbar yayımlandı.' });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Sunucu hatası';
     return NextResponse.json({ error: message }, { status: 500 });

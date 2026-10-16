@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { ReactNode } from 'react';
 import Sidebar from '@/components/Sidebar/Sidebar';
 import Navbar from '@/components/Navbar/Navbar';
@@ -9,6 +10,7 @@ import styles from './AppShell.module.css';
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   /* On auth pages (login, register) — render only children, no shell */
   const isAuthPage = PUBLIC_ROUTES.includes(pathname);
@@ -19,17 +21,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <Sidebar />
-      <Navbar />
-      <main className={styles.main}>
-        <div
-          style={{
-            padding: 'var(--space-xl)',
-            maxWidth: '1440px',
-          }}
-        >
-          {children}
-        </div>
+      <Sidebar open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
+      <Navbar menuOpen={mobileNavOpen} onMenuOpen={() => setMobileNavOpen(true)} />
+      <a className={styles.skipLink} href="#main-content">Ana içeriğe geç</a>
+      <main className={styles.main} id="main-content" tabIndex={-1}>
+        <div className={styles.content}>{children}</div>
       </main>
     </>
   );

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider/AuthProvider';
-import { KanbanCard } from '@/lib/kanban';
+import { KanbanCard } from '@/lib/kanban-types';
 import ReportModal from '@/components/ReportModal/ReportModal';
 import styles from './page.module.css';
 
@@ -13,6 +13,8 @@ export default function ArchivePage() {
 
   const [allTasks, setAllTasks] = useState<KanbanCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -27,16 +29,23 @@ export default function ArchivePage() {
 
   useEffect(() => {
     if (user) {
-      fetch('/api/kanban/archive')
-        .then(r => r.json())
-        .then(d => {
-          if (d.success) {
-            setAllTasks(d.tasks);
+      let active = true;
+      fetch('/api/kanban/archive', { cache: 'no-store' })
+        .then(async response => {
+          const data = await response.json();
+          if (!response.ok || !data.success) throw new Error(data.error || 'Arşiv yüklenemedi.');
+          if (active) {
+            setAllTasks(data.tasks);
+            setLoadError(null);
           }
         })
-        .finally(() => setLoading(false));
+        .catch(error => {
+          if (active) setLoadError(error instanceof Error ? error.message : 'Arşiv yüklenemedi.');
+        })
+        .finally(() => { if (active) setLoading(false); });
+      return () => { active = false; };
     }
-  }, [user]);
+  }, [user, reloadKey]);
 
   const tasks = useMemo(() => {
     let filtered = allTasks;
@@ -69,7 +78,7 @@ export default function ArchivePage() {
   if (authLoading || loading || !user) {
     return (
       <div className={styles.container} style={{ display: 'flex', justifyContent: 'center', paddingTop: '10vh' }}>
-        <div className="spinner" style={{ width: 40, height: 40, borderBottomColor: 'var(--accent)' }} />
+        <div className="spinner" style={{ width: 40, height: 40, borderBottomColor: 'var(--accent)' }} role="status" aria-label="Arşiv yükleniyor" />
       </div>
     );
   }
@@ -104,12 +113,18 @@ export default function ArchivePage() {
       </div>
 
       <div className={styles.tableContainer}>
-        {tasks.length === 0 ? (
+        {loadError ? (
+          <div className={styles.emptyState} role="alert">
+            <p>{loadError}</p>
+            <button type="button" className={styles.detailsBtn} onClick={() => { setLoading(true); setReloadKey(key => key + 1); }}>Yeniden dene</button>
+          </div>
+        ) : tasks.length === 0 ? (
           <div className={styles.emptyState}>
-            Kriterlerinize uygun arşiv kaydı bulunamadı.
+            {allTasks.length === 0 ? 'Henüz tamamlanmış veya reddedilmiş rapor yok.' : 'Filtrelerinize uygun arşiv kaydı bulunamadı.'}
           </div>
         ) : (
           <table className={styles.table}>
+            <caption className={styles.visuallyHidden}>Tamamlanmış raporlar</caption>
             <thead>
               <tr>
                 <th>Rapor Başlığı</th>
@@ -128,10 +143,10 @@ export default function ArchivePage() {
                   <td>{new Date(t.createdAt).toLocaleDateString('tr-TR')}</td>
                   <td>
                     <span style={{ 
-                      color: t.riskScore >= 70 ? '#ef4444' : t.riskScore >= 40 ? '#f59e0b' : '#10b981',
+                      color: t.riskAssessed ? (t.riskScore >= 70 ? '#ef4444' : t.riskScore >= 40 ? '#f59e0b' : '#10b981') : 'var(--text-secondary)',
                       fontWeight: 'bold'
                     }}>
-                      {t.riskScore} / 100
+                      {t.riskAssessed ? `${t.riskScore} / 100` : 'Değerlendirilmedi'}
                     </span>
                   </td>
                   <td>{getStatusBadge(t.column)}</td>

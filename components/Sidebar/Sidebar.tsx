@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider/AuthProvider';
-import { ROLE_LABELS, ROLE_COLORS } from '@/lib/types';
+import { ROLE_LABELS, ROLE_COLORS, ROLE_ROUTES } from '@/lib/types';
 import styles from './Sidebar.module.css';
 
 function getInitials(name: string) {
@@ -11,20 +11,18 @@ function getInitials(name: string) {
 }
 
 /* ── Icon components (inline SVGs) ── */
-const IconDashboard = () => (
-  <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="7" height="7" rx="1" />
-    <rect x="14" y="3" width="7" height="7" rx="1" />
-    <rect x="3" y="14" width="7" height="7" rx="1" />
-    <rect x="14" y="14" width="7" height="7" rx="1" />
-  </svg>
-);
-
 const IconKanban = () => (
   <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="5" height="18" rx="1" />
     <rect x="10" y="3" width="5" height="12" rx="1" />
     <rect x="17" y="3" width="5" height="15" rx="1" />
+  </svg>
+);
+
+const IconReports = () => (
+  <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <path d="M14 2v6h6M8 13h8M8 17h8" />
   </svg>
 );
 
@@ -36,19 +34,20 @@ const IconMap = () => (
   </svg>
 );
 
-const IconAI = () => (
+const IconRadar = () => (
   <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
-    <path d="M16 14H8a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4z" />
-    <circle cx="9" cy="7" r="0.5" fill="currentColor" />
-    <circle cx="15" cy="7" r="0.5" fill="currentColor" />
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5" />
+    <circle cx="12" cy="12" r="1" />
+    <path d="M12 12 19 5" />
   </svg>
 );
 
-const IconMail = () => (
+const IconField = () => (
   <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="4" width="20" height="16" rx="2" />
-    <path d="M22 4L12 13 2 4" />
+    <path d="m3 7 6-3 6 3 6-3v13l-6 3-6-3-6 3z" />
+    <path d="M9 4v13M15 7v13" />
+    <circle cx="12" cy="10" r="2" />
   </svg>
 );
 
@@ -68,21 +67,11 @@ const IconSettings = () => (
   </svg>
 );
 
-const IconArchive = () => (
-  <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="21 8 21 21 3 21 3 8" />
-    <rect x="1" y="3" width="22" height="5" rx="1" />
-    <line x1="10" y1="12" x2="14" y2="12" />
-  </svg>
-);
-
 /* ── Navigation Configuration ── */
 interface NavItem {
   href: string;
   label: string;
   icon: React.FC;
-  badge?: number;
-  badgeVariant?: 'default' | 'warning' | 'danger';
 }
 
 interface NavSection {
@@ -92,31 +81,32 @@ interface NavSection {
 
 const navSections: NavSection[] = [
   {
-    header: 'ANA MENÜ',
+    header: 'İHBAR İŞ AKIŞI',
     items: [
-      { href: '/', label: 'Pano', icon: IconDashboard },
-      { href: '/kanban', label: 'Raporlar', icon: IconKanban, badge: 12, badgeVariant: 'warning' },
-      { href: '/harita', label: 'Harita', icon: IconMap },
-      { href: '/ai-analiz', label: 'AI Analiz', icon: IconAI },
+      { href: '/ihbar', label: 'İhbar Bildir', icon: IconReports },
+      { href: '/raporlarim', label: 'İhbar Takip', icon: IconKanban },
+      { href: '/ihbar-takip', label: 'Takip Koduyla Sorgula', icon: IconReports },
+      { href: '/kanban', label: 'Operasyon & Doğrulama Panosu', icon: IconKanban },
+      { href: '/harita', label: 'Kirlilik Haritası', icon: IconMap },
+      { href: '/radar', label: 'Kümelenme Radarı', icon: IconRadar },
+      { href: '/saha', label: 'Saha İnceleme', icon: IconField },
     ],
   },
   {
-    header: 'YÖNETİM',
+    header: 'SİSTEM',
     items: [
-      { href: '/mail-sablonlari', label: 'Mail Şablonları', icon: IconMail },
-      { href: '/kullanicilar', label: 'Kullanıcılar', icon: IconUsers, badge: 3 },
-      { href: '/ayarlar', label: 'Ayarlar', icon: IconSettings },
-    ],
-  },
-  {
-    header: 'GÖRÜNÜM & ARAÇLAR',
-    items: [
-      { href: '/arsiv', label: 'Arşiv', icon: IconArchive },
+      { href: '/kullanicilar', label: 'Kullanıcılar', icon: IconUsers },
+      { href: '/ayarlar', label: 'Sistem Ayarları', icon: IconSettings },
     ],
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
 
@@ -125,14 +115,14 @@ export default function Sidebar() {
     return pathname.startsWith(href);
   };
 
-  const getBadgeClass = (variant?: 'default' | 'warning' | 'danger') => {
-    if (variant === 'warning') return `${styles.navBadge} ${styles.navBadgeWarning}`;
-    if (variant === 'danger') return `${styles.navBadge} ${styles.navBadgeDanger}`;
-    return styles.navBadge;
-  };
-
   return (
-    <aside className={styles.sidebar}>
+    <>
+      {open && <button type="button" className={styles.mobileOverlay} aria-label="Menüyü kapat" onClick={onClose} />}
+      <aside
+        id="primary-navigation"
+        className={`${styles.sidebar} ${open ? styles.sidebarOpen : ''}`}
+        aria-label="Ana gezinme"
+      >
       {/* Logo */}
       <div className={styles.logo}>
         <svg className={styles.logoIcon} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -155,14 +145,22 @@ export default function Sidebar() {
           />
         </svg>
         <span className={styles.logoText}>AquaGuard</span>
+        <button type="button" className={styles.mobileClose} onClick={onClose} aria-label="Menüyü kapat">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
 
       {/* Navigation */}
       <nav className={styles.nav}>
-        {navSections.map((section) => (
+        {navSections.map((section) => {
+          const visibleItems = section.items.filter(item => user && ROLE_ROUTES[user.role].includes(item.href));
+          if (!visibleItems.length) return null;
+          return (
           <div key={section.header}>
             <div className={styles.sectionHeader}>{section.header}</div>
-            {section.items.map((item) => {
+            {visibleItems.map((item) => {
               const active = isActive(item.href);
               const Icon = item.icon;
               return (
@@ -170,19 +168,17 @@ export default function Sidebar() {
                   key={item.href}
                   href={item.href}
                   className={`${styles.navItem} ${active ? styles.navItemActive : ''}`}
+                  aria-current={active ? 'page' : undefined}
+                  onClick={onClose}
                 >
                   <Icon />
                   <span className={styles.navLabel}>{item.label}</span>
-                  {item.badge !== undefined && (
-                    <span className={getBadgeClass(item.badgeVariant)}>
-                      {item.badge}
-                    </span>
-                  )}
                 </Link>
               );
             })}
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* User Section */}
@@ -204,6 +200,7 @@ export default function Sidebar() {
           </span>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

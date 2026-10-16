@@ -1,54 +1,50 @@
-import { User, SafeUser, UserRole } from './types';
-import { hashPassword } from './auth';
-import { db } from './firebase';
-import { collection, doc, getDoc, getDocs, setDoc, query, where, deleteDoc, updateDoc } from 'firebase/firestore';
+import 'server-only';
 
-// Süper Admin için özel bir sentinel hash sabiti kullanıyoruz.
-// Login sırasında bu hash görülürse, bcrypt yerine düz string karşılaştırması yapılır.
-export const SUPER_ADMIN_SENTINEL = '__SUPER_ADMIN_PLAIN__';
+import { randomUUID } from 'node:crypto';
+import { User, SafeUser, UserRole } from './types';
+import database from './local-db';
+import { hashPassword } from './auth';
+
+interface UserRow {
+  id: string;
+  name: string;
+  email: string;
+  password_hash: string;
+  role: UserRole;
+  account_status: User['accountStatus'];
+  requested_role: User['requestedRole'] | null;
+  avatar: string | null;
+  created_at: string;
+  two_factor_enabled: number;
+  two_factor_secret: string | null;
+  backup_codes_json: string | null;
+}
+
+function mapUser(row: UserRow): User {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    passwordHash: row.password_hash,
+    role: row.role,
+    accountStatus: row.account_status ?? 'active',
+    requestedRole: row.requested_role ?? undefined,
+    avatar: row.avatar ?? undefined,
+    createdAt: row.created_at,
+    twoFactorEnabled: row.two_factor_enabled === 1,
+    twoFactorSecret: row.two_factor_secret ?? undefined,
+    backupCodes: row.backup_codes_json ? JSON.parse(row.backup_codes_json) as string[] : undefined,
+  };
+}
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
-  const normalizedEmail = email.toLowerCase().trim();
-  console.log('[DEBUG FIND USER]', { normalizedEmail, superAdminEmail: (process.env.SUPER_ADMIN_EMAIL || '').toLowerCase().trim() });
-  const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || '').toLowerCase().trim();
-
-  // Süper Admin: ENV'deki email eşleşiyorsa, şifreyi sentinel ile döndür
-  if (superAdminEmail && normalizedEmail === superAdminEmail) {
-    return {
-      id: 'super-admin-env',
-      name: 'Super Admin',
-      email: normalizedEmail,
-      passwordHash: SUPER_ADMIN_SENTINEL, // bcrypt hash değil, özel işaret
-      role: 'super_admin',
-      createdAt: new Date().toISOString(),
-    };
-  }
-
-  // Normal kullanıcılar: Firestore'dan bul
-  const q = query(collection(db, 'users'), where('email', '==', normalizedEmail));
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) return undefined;
-
-  const docSnap = snapshot.docs[0];
-  return { id: docSnap.id, ...docSnap.data() } as User;
+  const row = database.prepare('SELECT * FROM users WHERE email = ? COLLATE NOCASE').get(email.trim()) as UserRow | undefined;
+  return row ? mapUser(row) : undefined;
 }
 
 export async function findUserById(id: string): Promise<User | undefined> {
-  if (id === 'super-admin-env') {
-    return {
-      id: 'super-admin-env',
-      name: 'Super Admin',
-      email: process.env.SUPER_ADMIN_EMAIL || '',
-      passwordHash: '',
-      role: 'super_admin',
-      createdAt: new Date().toISOString(),
-    };
-  }
-
-  const docRef = doc(db, 'users', id);
-  const docSnap = await getDoc(docRef);
-  if (!docSnap.exists()) return undefined;
-  return { id: docSnap.id, ...docSnap.data() } as User;
+  const row = database.prepare('SELECT * FROM users WHERE id = ?').get(id) as UserRow | undefined;
+  return row ? mapUser(row) : undefined;
 }
 
 export async function createUser(data: {
@@ -58,19 +54,15 @@ export async function createUser(data: {
   requestedRole?: Extract<UserRole, 'uzman' | 'yonetici'>;
 }): Promise<SafeUser> {
   const normalizedEmail = data.email.trim().toLowerCase();
-  const trimmedName = data.name.trim();
-
-  if (!trimmedName || !normalizedEmail || data.password.length < 6) {
+  const name = data.name.trim();
+  if (!name || !normalizedEmail || data.password.length < 6) {
     throw new Error('Geçersiz kullanıcı bilgisi.');
   }
 
-  const existing = await findUserByEmail(normalizedEmail);
-  if (existing) throw new Error('Bu e-posta adresi zaten kayıtlı.');
-
   const passwordHash = await hashPassword(data.password);
-  const newUser: User = {
-    id: String(Date.now()),
-    name: trimmedName,
+  const user: User = {
+    id: randomUUID(),
+    name,
     email: normalizedEmail,
     passwordHash,
     role: 'halk',
@@ -79,43 +71,72 @@ export async function createUser(data: {
     createdAt: new Date().toISOString(),
   };
 
-  const docRef = doc(db, 'users', newUser.id);
-  await setDoc(docRef, newUser);
+  try {
+    database.prepare(`
+      INSERT INTO users (
+        id, name, email, password_hash, role, account_status, requested_role, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      user.id,
+      user.name,
+      user.email,
+      user.passwordHash,
+      user.role,
+      user.accountStatus,
+      user.requestedRole ?? null,
+      user.createdAt,
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
+      throw new Error('Bu e-posta adresi zaten kayıtlı.');
+    }
+    throw error;
+  }
 
-  return toSafeUser(newUser);
+  return toSafeUser(user);
 }
 
 export async function getAllUsers(): Promise<SafeUser[]> {
-  const snapshot = await getDocs(collection(db, 'users'));
-  const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-  return users.map(toSafeUser);
+  const rows = database.prepare('SELECT * FROM users ORDER BY created_at DESC').all() as UserRow[];
+  return rows.map(row => toSafeUser(mapUser(row)));
 }
 
 export async function updateUser(
   id: string,
   updates: Partial<Pick<User, 'name' | 'passwordHash' | 'role' | 'accountStatus' | 'requestedRole' | 'twoFactorEnabled' | 'twoFactorSecret' | 'backupCodes'>>,
 ): Promise<SafeUser | undefined> {
-  if (id === 'super-admin-env') return undefined; // Cannot update env super admin
+  const current = await findUserById(id);
+  if (!current) return undefined;
 
-  const docRef = doc(db, 'users', id);
-  const docSnap = await getDoc(docRef);
-  if (!docSnap.exists()) return undefined;
+  const updated = { ...current, ...updates };
+  const passwordHash = updates.passwordHash
+    ? updates.passwordHash.startsWith('$2') ? updates.passwordHash : await hashPassword(updates.passwordHash)
+    : current.passwordHash;
+  database.prepare(`
+    UPDATE users SET
+      name = ?, password_hash = ?, role = ?, account_status = ?, requested_role = ?,
+      two_factor_enabled = ?, two_factor_secret = ?, backup_codes_json = ?, avatar = ?
+    WHERE id = ?
+  `).run(
+    updated.name,
+    passwordHash,
+    updated.role,
+    updated.accountStatus ?? 'active',
+    updated.requestedRole ?? null,
+    updated.twoFactorEnabled ? 1 : 0,
+    updated.twoFactorSecret ?? null,
+    updated.backupCodes ? JSON.stringify(updated.backupCodes) : null,
+    updated.avatar ?? null,
+    id,
+  );
 
-  const finalUpdates = { ...updates };
-  if (updates.passwordHash && typeof updates.passwordHash === 'string' && !updates.passwordHash.startsWith('$2')) {
-    // Only hash if it's not already hashed (doesn't start with bcrypt prefix)
-    finalUpdates.passwordHash = await hashPassword(updates.passwordHash);
-  }
-
-  await updateDoc(docRef, finalUpdates);
-  const updatedSnap = await getDoc(docRef);
-  return toSafeUser({ id: updatedSnap.id, ...updatedSnap.data() } as User);
+  const saved = await findUserById(id);
+  return saved ? toSafeUser(saved) : undefined;
 }
 
 export async function deleteUser(id: string): Promise<boolean> {
   if (id === 'super-admin-env') return false;
-  await deleteDoc(doc(db, 'users', id));
-  return true;
+  return database.prepare('DELETE FROM users WHERE id = ?').run(id).changes > 0;
 }
 
 export function toSafeUser(user: User): SafeUser {
@@ -128,5 +149,6 @@ export function toSafeUser(user: User): SafeUser {
     requestedRole: user.requestedRole,
     avatar: user.avatar,
     createdAt: user.createdAt,
+    twoFactorEnabled: user.twoFactorEnabled,
   };
 }

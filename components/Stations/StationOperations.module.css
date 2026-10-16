@@ -1,0 +1,150 @@
+.page {
+  display: grid;
+  gap: 1rem;
+}
+
+.header,
+.layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.header {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.header h1 {
+  font-size: 1.35rem;
+}
+
+.header p,
+.help,
+.state {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
+}
+
+.layout {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+
+.panel {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+}
+
+.panel h2 {
+  font-size: 1rem;
+  margin-bottom: 0.7rem;
+}
+
+.form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.form label,
+.stationSelect {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.form input,
+.form select,
+.stationSelect select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.form button,
+.secondaryButton,
+.error button {
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.8rem;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+  text-decoration: none;
+}
+
+.form button:hover,
+.secondaryButton:hover,
+.error button:hover {
+  border-color: var(--accent);
+}
+
+.form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.twoColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.stationSelect {
+  margin-top: 1rem;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.tableWrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  text-align: left;
+}
+
+.tableWrap th,
+.tableWrap td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.65rem;
+  white-space: nowrap;
+}
+
+.tableWrap th {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.error {
+  padding: 0.8rem;
+  border: 1px solid #c64c55;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+}
+
+@media (max-width: 1050px) {
+  .layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .header,
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

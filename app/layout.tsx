@@ -17,9 +17,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'AquaGuard — Akıllı Su Kalitesi İzleme Platformu',
+  title: 'AquaGuard — Su Kirliliği Bildirim ve Takip Platformu',
   description:
-    'AquaGuard, su kaynaklarının kalitesini gerçek zamanlı izleyen, raporlayan ve AI destekli analiz sunan akıllı bir platformdur.',
+    'AquaGuard; su kirliliği olaylarının bildirilmesini, incelenmesini ve yerel takip koduyla sorgulanmasını sağlar.',
   keywords: ['su kalitesi', 'izleme', 'rapor', 'AquaGuard', 'çevre'],
 };
 

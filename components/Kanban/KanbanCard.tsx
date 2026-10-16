@@ -1,25 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { KanbanCard, RISK_CONFIG, APPROVAL_ROLES } from '@/lib/kanban';
+import { KanbanCard, RISK_CONFIG, APPROVAL_ROLES, isCriticalSlaBreached } from '@/lib/kanban-types';
 import { UserRole } from '@/lib/types';
-import { toast } from 'sonner';
 import styles from './Kanban.module.css';
-
-interface AIResult {
-  riskLevel?: 'low' | 'medium' | 'high' | 'critical';
-  explanation?: string;
-  suggestedAction?: string;
-  draftEmail?: string;
-  error?: string;
-}
 
 interface Props {
   card: KanbanCard;
-  isDragging?: boolean;
-  isOverlay?: boolean;
   isMoving?: boolean;
   userRole?: UserRole;
   onApprove?: (cardId: string) => void;
@@ -49,34 +36,22 @@ function RiskBar({ score }: { score: number }) {
 }
 
 export default function KanbanCardComponent({
-  card, isDragging, isOverlay, isMoving,
+  card, isMoving,
   userRole, onApprove, onReject, onDetail,
 }: Props) {
-  const {
-    attributes, listeners, setNodeRef,
-    transform, transition, isDragging: isSortableDragging,
-  } = useSortable({ id: card.id });
-
   const [approvalLoading, setApprovalLoading] = useState<'approve' | 'reject' | null>(null);
-  const [aiModalOpen, setAiModalOpen] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState<AIResult | null>(null);
 
-  const risk = RISK_CONFIG[card.riskLevel];
+  const risk = card.riskAssessed
+    ? RISK_CONFIG[card.riskLevel]
+    : { label: 'Değerlendirilmedi', color: '#8892a8', bg: 'rgba(136,146,168,0.12)' };
 
   /* Check if current user can approve/reject this card */
   const allowedRoles = APPROVAL_ROLES[card.column];
-  const canApprove = !!(userRole && allowedRoles && allowedRoles.includes(userRole as 'uzman' | 'yonetici' | 'admin'));
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isSortableDragging && !isOverlay ? 0.35 : 1,
-    cursor: isDragging || isOverlay ? 'grabbing' : 'grab',
-  };
-
-  /* Stop propagation so button clicks don't trigger drag */
-  const stopDrag = (e: React.PointerEvent | React.MouseEvent) => e.stopPropagation();
+  const canApprove = !!(
+    allowedRoles &&
+    (userRole === 'uzman' || userRole === 'yonetici') &&
+    allowedRoles.includes(userRole)
+  );
 
   const handleApprove = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -95,79 +70,23 @@ export default function KanbanCardComponent({
     onDetail?.(card);
   };
 
-  /* ── AI Analysis ── */
-  const handleAiAnalyze = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setAiModalOpen(true);
-    setAiResult(null);
-    setAiLoading(true);
-    try {
-      const res = await fetch('/api/v2/ai/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          description: `${card.title} — ${card.description} (Konum: ${card.location}, Risk Skoru: ${card.riskScore}/100)`,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setAiResult(data as AIResult);
-      } else {
-        setAiResult({ ...(data as Partial<AIResult>), error: (data as { error?: string }).error || 'Hata oluştu' });
-      }
-    } catch {
-      setAiResult({ error: 'Sunucuya bağlanılamadı' });
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const handleSendMail = async () => {
-    if (!aiResult?.draftEmail) return;
-    const toastId = toast.loading('E-posta gönderiliyor...');
-    try {
-      const res = await fetch('/api/mail/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: card.creatorEmail,
-          subject: `AI Analiz Raporu: ${card.title}`,
-          body: aiResult.draftEmail,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success('E-posta gönderildi!', {
-          id: toastId,
-          description: data.simulated ? 'RESEND_API_KEY olmadığı için simüle edildi.' : 'Başarıyla iletildi.',
-        });
-      } else {
-        toast.error('Hata', { id: toastId, description: data.error });
-      }
-    } catch {
-      toast.error('Sunucuya bağlanılamadı', { id: toastId });
-    }
-  };
-
-  const riskColors: Record<string, string> = {
-    low: '#00ff88', medium: '#f59e0b', high: '#ff6b35', critical: '#ff4444',
-  };
+  const slaBreached = isCriticalSlaBreached(card);
 
   return (
     <>
       <div
-        ref={setNodeRef}
-        style={style}
-        {...attributes}
-        {...listeners}
         className={`
           ${styles.card}
-          ${isDragging || isOverlay ? styles.cardDragging : ''}
           ${isMoving ? styles.cardMoving : ''}
           ${canApprove ? styles.cardActionable : ''}
         `}
       >
         {isMoving && <div className={styles.movingPulse} />}
+        {slaBreached && (
+          <div role="alert" style={{ padding: '6px 8px', borderRadius: 6, color: '#fff', background: '#a21d24', fontSize: 12, fontWeight: 800 }}>
+            Gecikme Uyarısı · Kritik ihbar 24 saati aştı
+          </div>
+        )}
 
         {/* Top row — risk badge + score + AI button */}
         <div className={styles.cardTop}>
@@ -178,27 +97,12 @@ export default function KanbanCardComponent({
             {risk.label}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            {/* AI Analyze Button */}
-            <button
-              className={styles.detailBtn}
-              onClick={handleAiAnalyze}
-              onPointerDown={stopDrag}
-              title="AI ile Analiz Et"
-              aria-label="AI analiz"
-              style={{ color: '#6e8efb' }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
-                <path d="M16 14H8a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4z" />
-              </svg>
-            </button>
-            <span className={styles.riskScore} style={{ color: risk.color }}>{card.riskScore}</span>
+            {card.riskAssessed && <span className={styles.riskScore} style={{ color: risk.color }}>{card.riskScore}</span>}
             {/* Detail button */}
             {onDetail && (
               <button
                 className={styles.detailBtn}
                 onClick={handleDetail}
-                onPointerDown={stopDrag}
                 title="Detay & Onay Geçmişi"
                 aria-label="Kart detayı"
               >
@@ -212,7 +116,7 @@ export default function KanbanCardComponent({
           </div>
         </div>
 
-        <RiskBar score={card.riskScore} />
+        {card.riskAssessed && <RiskBar score={card.riskScore} />}
 
         {/* Title */}
         <h4 className={styles.cardTitle}>{card.title}</h4>
@@ -265,8 +169,8 @@ export default function KanbanCardComponent({
         </div>
 
         {/* ── Approval Action Buttons ── */}
-        {canApprove && !isOverlay && (
-          <div className={styles.approvalActions} onPointerDown={stopDrag}>
+        {canApprove && (
+          <div className={styles.approvalActions}>
             <button
               className={styles.rejectBtn}
               onClick={handleReject}
@@ -305,121 +209,6 @@ export default function KanbanCardComponent({
         )}
       </div>
 
-      {/* ── AI Analysis Modal ── */}
-      {aiModalOpen && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 9999,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(10,15,30,0.85)', backdropFilter: 'blur(8px)',
-            padding: '1rem',
-          }}
-          onPointerDown={() => setAiModalOpen(false)}
-        >
-          <div
-            style={{
-              background: 'var(--bg-card)', border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-xl)', maxWidth: '560px', width: '100%',
-              maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-              boxShadow: '0 24px 64px rgba(0,0,0,0.8)',
-            }}
-            onPointerDown={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)',
-              background: 'rgba(110,142,251,0.08)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6e8efb" strokeWidth="2">
-                  <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
-                  <path d="M16 14H8a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4z" />
-                </svg>
-                <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1rem' }}>
-                  AI Analiz — {card.title}
-                </span>
-              </div>
-              <button onClick={() => setAiModalOpen(false)} style={{ color: 'var(--text-muted)', cursor: 'pointer' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Body */}
-            <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
-              {aiLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 0', gap: '1rem', color: 'var(--text-muted)' }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: '50%',
-                    border: '3px solid var(--border)', borderTopColor: '#6e8efb',
-                    animation: 'spin 0.8s linear infinite',
-                  }} />
-                  <p>Gemini AI raporu inceliyor...</p>
-                </div>
-              ) : aiResult?.error ? (
-                <div style={{ padding: '1rem', background: 'var(--danger-glow)', borderRadius: 'var(--radius-md)', color: 'var(--danger)', border: '1px solid rgba(255,68,68,0.2)' }}>
-                  {aiResult.error}
-                </div>
-              ) : aiResult ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  {/* Risk Level */}
-                  <div>
-                    <p style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>AI Risk Değerlendirmesi</p>
-                    <span style={{
-                      padding: '0.3rem 0.9rem', borderRadius: 'var(--radius-full)',
-                      fontSize: '0.8rem', fontWeight: 700, border: '1px solid',
-                      color: aiResult.riskLevel ? riskColors[aiResult.riskLevel] || '#f59e0b' : '#f59e0b',
-                      background: `${aiResult.riskLevel ? riskColors[aiResult.riskLevel] || '#f59e0b' : '#f59e0b'}18`,
-                      borderColor: `${aiResult.riskLevel ? riskColors[aiResult.riskLevel] || '#f59e0b' : '#f59e0b'}33`,
-                    }}>
-                      {aiResult.riskLevel?.toUpperCase() ?? 'UNKNOWN'}
-                    </span>
-                  </div>
-                  {/* Explanation */}
-                  <div>
-                    <p style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Gerekçe</p>
-                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>{aiResult.explanation ?? 'Gerekçe mevcut değil.'}</p>
-                  </div>
-                  {/* Action */}
-                  <div>
-                    <p style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>İlk Aksiyon</p>
-                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>{aiResult.suggestedAction ?? 'Aksiyon önerisi mevcut değil.'}</p>
-                  </div>
-                  {/* Draft Email */}
-                  <div>
-                    <p style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Resmi Dilekçe Taslağı</p>
-                    <div style={{
-                      padding: '1rem', background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border)', fontSize: '0.8rem', fontFamily: 'monospace',
-                      color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.7,
-                    }}>
-                      {aiResult.draftEmail ?? 'Taslak mevcut değil.'}
-                    </div>
-                  </div>
-                  {/* Send Mail Button */}
-                  <button
-                    onClick={handleSendMail}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                      padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg,#00b4d8,#00d4ff)',
-                      color: '#0a0f1e', fontWeight: 700, borderRadius: 'var(--radius-md)',
-                      border: 'none', cursor: 'pointer', fontSize: '0.875rem',
-                      boxShadow: '0 0 15px rgba(0,212,255,0.25)',
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M22 4L12 13 2 4" />
-                    </svg>
-                    Dilekçeyi E-Posta Olarak Gönder
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
