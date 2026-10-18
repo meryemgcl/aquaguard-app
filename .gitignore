@@ -20,6 +20,7 @@
 # production
 /build
 /data/
+/data/uploads/
 *.db
 *.db-shm
 *.db-wal

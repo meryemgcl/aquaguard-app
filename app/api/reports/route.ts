@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { addCard, getCards } from '@/lib/kanban';
 import { requireApiUser } from '@/lib/api-auth';
 import { incidentSubmissionSchema } from '@/lib/incident-validation';
+import { readJsonBodyWithinLimit, RequestBodyTooLargeError } from '@/lib/request-json';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -13,17 +14,14 @@ export async function GET(request: NextRequest) {
   const cards = getCards();
   return NextResponse.json({
     cards: auth.user.role === 'halk'
-      ? cards.filter(card => card.column === 'yayinlandi')
+      ? cards.filter(card => card.column === 'yayinlandi').map(card => ({ ...card, creatorEmail: '' }))
       : cards,
   });
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireApiUser(req);
-  if (!auth.user) return auth.response;
-
   try {
-    const body: unknown = await req.json();
+    const body = await readJsonBodyWithinLimit(req, 28 * 1024 * 1024);
     const parsed = incidentSubmissionSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({
@@ -32,11 +30,16 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
+    const optionalAuth = parsed.data.privacyLevel === 'acik' && req.cookies.has('token')
+      ? await requireApiUser(req, ['halk'])
+      : null;
+    const citizen = optionalAuth && 'user' in optionalAuth ? optionalAuth.user : undefined;
+    const privateSubmission = parsed.data.privacyLevel !== 'acik';
     const card = addCard({
       ...parsed.data,
-      creatorEmail: auth.user.email,
-      submittedBy: auth.user.name,
-      role: auth.user.role,
+      creatorEmail: citizen?.email ?? null,
+      submittedBy: privateSubmission ? 'Anonim Vatandaş' : parsed.data.reporterName!,
+      role: 'halk',
     });
 
     void import('@/lib/google-sheets-sync').then(({ syncIncidentToGoogleSheets }) => {
@@ -50,8 +53,14 @@ export async function POST(req: NextRequest) {
         status: card.column,
         description: card.description,
         waterbodyName: card.location,
-        measurements: card.measurements,
+        measurements: {
+          ph: card.measurements?.ph ?? null,
+          dissolvedOxygen: card.measurements?.dissolvedO2 ?? null,
+          turbidity: card.measurements?.turbidity ?? null,
+          temperature: card.measurements?.temperature ?? null,
+        },
         expertNotes: card.expertNotes ?? undefined,
+        privacyLevel: parsed.data.privacyLevel,
       });
     });
 
@@ -63,6 +72,9 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     if (error instanceof SyntaxError) {
       return NextResponse.json({ error: 'İstek gövdesi geçerli JSON değil.' }, { status: 400 });
+    }
+    if (error instanceof RequestBodyTooLargeError) {
+      return NextResponse.json({ error: 'İstek gövdesi 28 MB sınırını aşıyor.' }, { status: 413 });
     }
     const message = error instanceof Error ? error.message : 'Report creation failed';
     return NextResponse.json({ error: message }, { status: 500 });

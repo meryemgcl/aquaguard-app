@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
           temperature: updatedCard.measurements?.temperature ?? null,
         },
         expertNotes: updatedCard.expertNotes ?? undefined,
+        privacyLevel: updatedCard.privacyLevel,
       });
     });
 

@@ -7,6 +7,8 @@ import path from 'node:path';
 async function run(): Promise<void> {
   const databasePath = path.join(os.tmpdir(), `aquaguard-workflow-${process.pid}.db`);
   process.env.AQUAGUARD_DB_PATH = databasePath;
+  process.env.AQUAGUARD_UPLOAD_DIR = path.join(os.tmpdir(), `aquaguard-workflow-uploads-${process.pid}`);
+  process.env.JWT_SECRET = 'workflow-test-secret-that-is-long-enough-123456';
   const originalRequire = Module.prototype.require;
   Module.prototype.require = function (id: string): unknown {
     return id === 'server-only' ? {} : originalRequire.call(this, id);
@@ -24,20 +26,30 @@ async function run(): Promise<void> {
     const { filterIncidentMapMarkers, toIncidentMapMarker } = await import('@/lib/incident-map');
     const { getDashboardData } = await import('@/lib/dashboard');
     const { riskScoreToColor } = await import('@/lib/risk-colors');
+    const { applyFieldInspection } = await import('@/lib/kanban');
+    const { applyFieldSyncResults } = await import('@/lib/offline-sync');
+    const { fieldInspectionSchema } = await import('@/lib/field-inspection');
+    const { createToken } = await import('@/lib/auth');
+    const { NextRequest } = await import('next/server');
+    const { POST: syncPost } = await import('@/app/api/saha/sync/route');
 
-    const createIncident = (description: string) => addCard({
+    const createIncident = (description: string, privacyLevel: 'acik' | 'anonim' = 'acik') => addCard({
       ...incidentSubmissionSchema.parse({
+        privacyLevel,
+        ...(privacyLevel === 'anonim' ? {} : {
+          reporterName: 'Test citizen',
+          contact: 'citizen@example.test',
+        }),
         category: 'endüstriyel atık',
         description,
         addressText: 'Test nehri, kuzey kıyısı',
         province: 'İzmir',
         district: 'Foça',
-        contact: 'citizen@example.test',
         coordinates: { lat: 39, lng: 32 },
-        photos: ['data:image/png;base64,aGVsbG8='],
+        photos: ['data:image/png;base64,iVBORw0KGgo='],
       }),
-      creatorEmail: 'citizen@example.test',
-      submittedBy: 'Test citizen',
+      creatorEmail: privacyLevel === 'anonim' ? null : 'citizen@example.test',
+      submittedBy: privacyLevel === 'anonim' ? 'Anonim Vatandaş' : 'Test citizen',
       role: 'halk',
     });
 
@@ -75,6 +87,14 @@ async function run(): Promise<void> {
     assert.equal(published?.auditTrail.length, 5);
     assert.equal(published?.auditTrail.at(-1)?.newStatus, 'yayinda');
     assert.equal(getPublicIncidentTracking(forwarded.trackingCode)?.status, 'yayinda');
+    assert.match(forwarded.photos[0], /^\/api\/media\/inc-/);
+    const storedReport = database.prepare(`
+      SELECT media_metadata_json FROM reports WHERE id = ?
+    `).get(forwarded.id) as { media_metadata_json: string } | undefined;
+    assert.ok(storedReport);
+    assert.equal(JSON.parse(storedReport.media_metadata_json).length, 1);
+    assert.ok(!(database.prepare('PRAGMA table_info(reports)').all() as { name: string }[])
+      .some(column => column.name === 'photos_json'), 'new databases do not create the legacy base64 column');
 
     const invalid = createIncident('Bu kayıt farklı bir yerden alınmış görünüyor.');
     startExpertReview(invalid.id, { name: 'Test expert', role: 'uzman' });
@@ -156,6 +176,30 @@ async function run(): Promise<void> {
     })?.riskColor, '#f2c94c', 'map pin color follows the verified risk level');
     assert.equal(getDashboardData(false).stats.totalReports, 1, 'citizen aggregates only include published incidents');
 
+    const anonymous = createIncident('Kıyıdaki su yüzeyinde yağ tabakası görüldü.', 'anonim');
+    const anonymousStorage = database.prepare(`
+      SELECT privacy_level, reporter_name, reporter_email, reporter_phone,
+        reporter_contact_encrypted, creator_email
+      FROM reports WHERE id = ?
+    `).get(anonymous.id) as {
+      privacy_level: string;
+      reporter_name: string;
+      reporter_email: string | null;
+      reporter_phone: string | null;
+      reporter_contact_encrypted: string | null;
+      creator_email: string;
+    };
+    assert.equal(anonymousStorage.privacy_level, 'anonim');
+    assert.equal(anonymousStorage.reporter_name, 'Gizli İhbarcı');
+    assert.equal(anonymousStorage.reporter_email, null);
+    assert.equal(anonymousStorage.reporter_phone, null);
+    assert.equal(anonymousStorage.reporter_contact_encrypted, null);
+    assert.equal(anonymousStorage.creator_email, '');
+    assert.equal(anonymous.creatorEmail, '');
+    assert.equal(anonymous.auditTrail[0].user, 'Anonim Vatandaş');
+    assert.equal(anonymous.auditTrail[0].role, 'halk');
+    assert.equal(anonymous.auditTrail[0].user, 'Anonim Vatandaş');
+
     const now = Date.parse('2026-01-02T01:00:00.000Z');
     const criticalCard = {
       column: 'yeni',
@@ -169,6 +213,165 @@ async function run(): Promise<void> {
     assert.equal(isCriticalSlaBreached({ ...criticalCard, expertReviewedAt: now.toString() }, now), false);
     assert.equal(isCriticalSlaBreached({ ...criticalCard, column: 'onay-uzman' }, now), false);
 
+    const fieldPayload = (incidentId: string, baseVersion: number, clientMutationId: string, overrides = {}) => ({
+      clientMutationId,
+      incidentId,
+      baseVersion,
+      verdict: 'confirmed' as const,
+      notes: 'Sahada gözle görülür kirlilik ve yüzey tabakası tespit edildi.',
+      measurements: { ph: 6.4, dissolvedO2: 4.2 },
+      fieldPhotos: [],
+      timestamp: new Date().toISOString(),
+      ...overrides,
+    });
+    const fieldActor = { name: 'Test expert', role: 'uzman' as const };
+    const syncSuccessIncident = createIncident('Saha sync başarılı kayıt için test bildirimi.');
+    const successfulMutation = fieldPayload(syncSuccessIncident.id, syncSuccessIncident.version, crypto.randomUUID(), {
+      fieldPhotos: ['data:image/png;base64,iVBORw0KGgo='],
+    });
+    assert.equal(fieldInspectionSchema.safeParse(successfulMutation).success, true);
+    assert.equal(fieldInspectionSchema.safeParse({
+      ...successfulMutation,
+      measurements: { ph: 15 },
+    }).success, false, 'payload validation rejects out-of-range field measurements');
+    const successfulSync = applyFieldInspection(successfulMutation, fieldActor);
+    assert.equal(successfulSync.status, 'SUCCESS');
+    assert.equal(getCardById(syncSuccessIncident.id)?.version, syncSuccessIncident.version + 1);
+    const syncedMedia = database.prepare(
+      'SELECT media_metadata_json FROM reports WHERE id = ?',
+    ).get(syncSuccessIncident.id) as { media_metadata_json: string };
+    assert.equal(JSON.parse(syncedMedia.media_metadata_json).length, 2, 'field photos are persisted as local media metadata');
+    assert.equal(applyFieldInspection(successfulMutation, fieldActor).status, 'ALREADY_PROCESSED');
+    assert.equal(applyFieldInspection({
+      ...successfulMutation,
+      notes: `${successfulMutation.notes} changed`,
+    }, fieldActor).status, 'REJECTED', 'a mutation ID cannot be reused for a different payload');
+    const mutationCount = database.prepare(
+      'SELECT COUNT(*) AS count FROM sync_mutations WHERE client_mutation_id = ?',
+    ).get(successfulMutation.clientMutationId) as { count: number };
+    assert.equal(mutationCount.count, 1);
+
+    const mismatchIncident = createIncident('Uzman incelemesi sürerken sürüm uyuşmazlığı testi.');
+    startExpertReview(mismatchIncident.id, fieldActor);
+    const mismatchPayload = fieldPayload(mismatchIncident.id, mismatchIncident.version, crypto.randomUUID());
+    const mismatch = applyFieldInspection(mismatchPayload, fieldActor);
+    assert.equal(mismatch.status, 'CONFLICT');
+    assert.equal(mismatch.serverIncident?.version, mismatchIncident.version + 1);
+    const forceResolved = applyFieldInspection(
+      fieldPayload(mismatchIncident.id, mismatch.serverIncident!.version, crypto.randomUUID(), {
+        resolution: 'FORCE_OVERWRITE',
+      }),
+      fieldActor,
+    );
+    assert.equal(forceResolved.status, 'SUCCESS');
+    assert.equal(getCardById(mismatchIncident.id)?.auditTrail.at(-1)?.resolution, 'FORCE_OVERWRITE');
+
+    const managerClosedIncident = createIncident('Yönetici kararı sonrası çakışma denetimi.');
+    const reviewing = startExpertReview(managerClosedIncident.id, fieldActor);
+    assert.ok(reviewing);
+    const forwardedForClosure = updateExpertReview(managerClosedIncident.id, {
+      action: 'forward',
+      riskScore: 60,
+      riskLevel: 'high',
+      acceptedAiSuggestion: false,
+      measurements: {},
+      note: 'Yönetici kararı için saha değerlendirmesi tamamlandı.',
+    }, fieldActor);
+    assert.ok(forwardedForClosure);
+    const managerRejected = recordApproval(managerClosedIncident.id, 'onay-yonetici', {
+      action: 'rejected',
+      role: 'yonetici',
+      actorName: 'Test manager',
+      actorInitials: 'TM',
+      actorColor: '#123456',
+      reason: 'İhbar kapatıldı ve saha müdahalesi tamamlandı.',
+      columnFrom: 'onay-yonetici',
+      columnTo: 'reddedildi',
+      resolution: 'kapatildi',
+    });
+    assert.ok(managerRejected);
+    const terminalConflict = applyFieldInspection(
+      fieldPayload(managerClosedIncident.id, reviewing.version, crypto.randomUUID()),
+      fieldActor,
+    );
+    assert.equal(terminalConflict.status, 'CONFLICT');
+    assert.equal(terminalConflict.serverIncident?.status, 'kapatildi');
+    const refusedForce = applyFieldInspection(
+      fieldPayload(managerClosedIncident.id, managerRejected.version, crypto.randomUUID(), {
+        resolution: 'FORCE_OVERWRITE',
+      }),
+      fieldActor,
+    );
+    assert.equal(refusedForce.status, 'CONFLICT', 'force overwrite cannot change a terminal manager decision');
+    const discarded = applyFieldInspection(
+      fieldPayload(managerClosedIncident.id, managerRejected.version, crypto.randomUUID(), {
+        resolution: 'DISCARDED',
+      }),
+      fieldActor,
+    );
+    assert.equal(discarded.status, 'SUCCESS');
+    const conflictAudit = getCardById(managerClosedIncident.id)?.auditTrail.at(-1);
+    assert.equal(conflictAudit?.action, 'CATISMA_COZULDU');
+    assert.equal(conflictAudit?.resolution, 'DISCARDED');
+
+    const queueTemplate = {
+      queueId: successfulMutation.clientMutationId,
+      ...successfulMutation,
+      syncStatus: 'Senkronizasyon Bekliyor' as const,
+    };
+    const retainedQueue = applyFieldSyncResults([
+      queueTemplate,
+      {
+        ...mismatchPayload,
+        queueId: mismatchPayload.clientMutationId,
+        syncStatus: 'Senkronizasyon Bekliyor' as const,
+      },
+    ], [
+      { ...successfulSync, status: 'SUCCESS' },
+      mismatch,
+    ]);
+    assert.equal(retainedQueue.length, 1, 'successful acknowledged items are removed from the local queue');
+    assert.equal(retainedQueue[0]?.syncStatus, 'Çakışma İncelemesi Gerekli');
+
+    const apiSuccessIncident = createIncident('API toplu senkronizasyon başarılı kayıt testi.');
+    const apiConflictIncident = createIncident('API toplu senkronizasyon çakışma testi.');
+    startExpertReview(apiConflictIncident.id, fieldActor);
+    const apiSuccessItem = fieldPayload(apiSuccessIncident.id, apiSuccessIncident.version, crypto.randomUUID());
+    const apiConflictItem = fieldPayload(apiConflictIncident.id, apiConflictIncident.version, crypto.randomUUID());
+    const staffId = crypto.randomUUID();
+    const staffEmail = `sync-${staffId}@example.test`;
+    database.prepare(`
+      INSERT INTO users (id, name, email, password_hash, role, account_status, created_at, two_factor_enabled)
+      VALUES (?, ?, ?, ?, 'uzman', 'active', ?, 0)
+    `).run(staffId, 'Sync Expert', staffEmail, 'test-hash', new Date().toISOString());
+    const staffToken = await createToken({
+      userId: staffId,
+      email: staffEmail,
+      role: 'uzman',
+      name: 'Sync Expert',
+    });
+    const postSyncBatch = async () => syncPost(new NextRequest('http://localhost/api/saha/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: `token=${staffToken}`,
+      },
+      body: JSON.stringify({ items: [apiSuccessItem, apiConflictItem] }),
+    }));
+    const apiBatchResponse = await postSyncBatch();
+    assert.equal(apiBatchResponse.status, 200);
+    const apiBatchBody = await apiBatchResponse.json() as {
+      results: Array<{ clientMutationId: string; status: string }>;
+    };
+    assert.deepEqual(apiBatchBody.results.map(result => result.status), ['SUCCESS', 'CONFLICT']);
+    assert.equal(getCardById(apiSuccessIncident.id)?.version, apiSuccessIncident.version + 1);
+    assert.equal(getCardById(apiConflictIncident.id)?.version, apiConflictIncident.version + 1);
+    const replayResponse = await postSyncBatch();
+    const replayBody = await replayResponse.json() as {
+      results: Array<{ status: string }>;
+    };
+    assert.deepEqual(replayBody.results.map(result => result.status), ['ALREADY_PROCESSED', 'CONFLICT']);
+
     assert.throws(() => database.prepare(
       'UPDATE report_status_events SET note = ? WHERE report_id = ?',
     ).run('tampered', forwarded.id), /immutable/);
@@ -178,6 +381,7 @@ async function run(): Promise<void> {
   } finally {
     closeDatabase?.();
     Module.prototype.require = originalRequire;
+    fs.rmSync(process.env.AQUAGUARD_UPLOAD_DIR!, { recursive: true, force: true });
     for (const suffix of ['', '-wal', '-shm']) {
       try {
         fs.unlinkSync(`${databasePath}${suffix}`);

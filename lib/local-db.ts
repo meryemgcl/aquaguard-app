@@ -2,7 +2,7 @@ import BetterSqlite3 from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
 import fs from 'node:fs';
 import path from 'node:path';
-import { randomInt } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 
 const databasePath = process.env.AQUAGUARD_DB_PATH
   ? path.resolve(process.env.AQUAGUARD_DB_PATH)
@@ -42,9 +42,12 @@ database.exec(`
     incident_category TEXT NOT NULL DEFAULT 'evsel atık' CHECK (incident_category IN ('endüstriyel atık', 'evsel atık', 'balık ölümü', 'renk/koku değişimi')),
     tracking_code TEXT,
     resolution_status TEXT CHECK (resolution_status IN ('gecersiz_ihbar', 'kapatildi', 'reddedildi')),
+    reporter_name TEXT NOT NULL DEFAULT 'Gizli İhbarcı',
     reporter_email TEXT,
     reporter_phone TEXT,
-    photos_json TEXT NOT NULL DEFAULT '[]',
+    reporter_contact_encrypted TEXT,
+    privacy_level TEXT NOT NULL DEFAULT 'acik' CHECK (privacy_level IN ('anonim', 'gizli_iletisim', 'acik')),
+    media_metadata_json TEXT NOT NULL DEFAULT '[]',
     expert_notes TEXT,
     manager_notes TEXT,
     audit_trail_json TEXT NOT NULL DEFAULT '[]',
@@ -57,7 +60,8 @@ database.exec(`
     expert_reviewed_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    creator_email TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1 CHECK (version >= 1),
+    creator_email TEXT,
     assignee_json TEXT NOT NULL,
     tags_json TEXT NOT NULL,
     measurements_json TEXT,
@@ -150,12 +154,16 @@ const reportMigrations: [string, string][] = [
   ['resolution_status', "TEXT CHECK (resolution_status IN ('gecersiz_ihbar', 'kapatildi', 'reddedildi'))"],
   ['reporter_email', 'TEXT'],
   ['reporter_phone', 'TEXT'],
-  ['photos_json', "TEXT NOT NULL DEFAULT '[]'"],
+  ['reporter_name', "TEXT NOT NULL DEFAULT 'Gizli İhbarcı'"],
+  ['reporter_contact_encrypted', 'TEXT'],
+  ['privacy_level', "TEXT NOT NULL DEFAULT 'acik' CHECK (privacy_level IN ('anonim', 'gizli_iletisim', 'acik'))"],
+  ['media_metadata_json', "TEXT NOT NULL DEFAULT '[]'"],
   ['expert_notes', 'TEXT'],
   ['manager_notes', 'TEXT'],
   ['audit_trail_json', "TEXT NOT NULL DEFAULT '[]'"],
   ['ai_risk_score', 'INTEGER CHECK (ai_risk_score BETWEEN 0 AND 100)'],
   ['expert_reviewed_at', 'TEXT'],
+  ['version', 'INTEGER NOT NULL DEFAULT 1 CHECK (version >= 1)'],
 ];
 for (const [column, definition] of reportMigrations) {
   if (!reportColumns.has(column)) {
@@ -167,6 +175,15 @@ database.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS reports_tracking_code_unique_idx
     ON reports(tracking_code)
     WHERE tracking_code IS NOT NULL;
+  CREATE TABLE IF NOT EXISTS sync_mutations (
+    client_mutation_id TEXT PRIMARY KEY,
+    incident_id TEXT NOT NULL REFERENCES reports(id) ON DELETE RESTRICT,
+    payload_hash TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS sync_mutations_incident_idx
+    ON sync_mutations(incident_id, created_at);
 `);
 
 database.exec(`
@@ -179,7 +196,8 @@ database.exec(`
       user_name TEXT NOT NULL,
       role TEXT NOT NULL CHECK (role IN ('super_admin', 'admin', 'uzman', 'yonetici', 'halk')),
       timestamp TEXT NOT NULL,
-      note TEXT NOT NULL
+      note TEXT NOT NULL,
+      resolution TEXT CHECK (resolution IN ('FORCE_OVERWRITE', 'DISCARDED'))
     );
     CREATE INDEX IF NOT EXISTS report_status_events_report_idx
       ON report_status_events(report_id, id);
@@ -194,6 +212,16 @@ database.exec(`
         SELECT RAISE(ABORT, 'status audit events are immutable');
       END;
   `);
+
+const statusEventColumns = new Set(
+  (database.prepare('PRAGMA table_info(report_status_events)').all() as { name: string }[]).map(column => column.name),
+);
+if (!statusEventColumns.has('resolution')) {
+  database.exec(`
+    ALTER TABLE report_status_events ADD COLUMN resolution TEXT
+      CHECK (resolution IN ('FORCE_OVERWRITE', 'DISCARDED'))
+  `);
+}
 
   database.prepare(`
     INSERT INTO report_status_events (
@@ -215,7 +243,11 @@ database.exec(`
     )
 `).run();
 
-database.exec("UPDATE reports SET column_name = 'onay-uzman' WHERE column_name = 'ai-analiz'");
+database.exec(`
+  UPDATE reports
+  SET column_name = 'onay-uzman', version = version + 1
+  WHERE column_name = 'ai-analiz'
+`);
 
 const reportsMissingTrackingCode = database.prepare(
   'SELECT id, category FROM reports WHERE tracking_code IS NULL',
@@ -234,7 +266,7 @@ const backfillIncident = database.prepare(`
 for (const report of reportsMissingTrackingCode) {
   let trackingCode: string;
   do {
-    const suffix = Array.from({ length: 5 }, () => randomInt(36).toString(36)).join('').toUpperCase();
+    const suffix = randomBytes(16).toString('hex').toUpperCase();
     trackingCode = `AG-${new Date().getFullYear()}-${suffix}`;
   } while (database.prepare('SELECT 1 FROM reports WHERE tracking_code = ?').get(trackingCode));
   backfillIncident.run(trackingCode, report.id);

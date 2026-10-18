@@ -52,6 +52,7 @@ export type WaterIncidentCategory =
   | 'evsel atık'
   | 'balık ölümü'
   | 'renk/koku değişimi';
+export type IncidentPrivacyLevel = 'anonim' | 'gizli_iletisim' | 'acik';
 
 export type WaterIncidentStatus =
   | 'yeni_ihbar'
@@ -87,6 +88,8 @@ export interface WaterIncident {
   province: string | null;
   district: string | null;
   photos: string[];
+  privacyLevel: IncidentPrivacyLevel;
+  reporterName: string;
   reportedAt: string;
   reporterEmail: string | null;
   reporterPhone: string | null;
@@ -124,4 +127,4 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
 };
 
 /* Public routes (no auth needed) */
-export const PUBLIC_ROUTES = ['/login', '/register', '/ihbar-takip', '/embed/harita'];
+export const PUBLIC_ROUTES = ['/login', '/register', '/ihbar', '/ihbar-takip', '/embed/harita'];

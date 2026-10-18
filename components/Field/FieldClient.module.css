@@ -77,6 +77,20 @@
 }
 .downloadButton:disabled { color: #126438; border-color: #70bc8f; background: #e8fff1; cursor: default; }
 .pendingLabel { color: #8a4300; font-size: .76rem; font-weight: 800; }
+.conflictLabel { display: inline-block; width: fit-content; padding: 7px 9px; border: 1px solid #b42318; border-radius: 7px; background: #ffebe9; color: #7a1710; font: inherit; font-size: .78rem; font-weight: 900; cursor: pointer; }
+.queueMessage { color: #7a1710; font-size: .78rem; line-height: 1.4; }
+.conflictDialog { position: fixed; inset: 50% auto auto 50%; z-index: 1000; display: grid; gap: 12px; width: min(900px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; padding: 24px; transform: translate(-50%, -50%); border: 1px solid #a9b7c8; border-radius: 14px; background: #fff; box-shadow: 0 0 0 100vmax #09182b99, 0 18px 55px #0005; }
+.conflictDialog h2, .conflictDialog p { margin: 0; }
+.dialogClose { justify-self: end; min-width: 42px; min-height: 42px; border: 1px solid #8392a5; border-radius: 8px; background: #fff; color: #17263d; font-size: 1.2rem; cursor: pointer; }
+.comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.comparison article { min-width: 0; padding: 13px; border: 1px solid #cbd6e3; border-radius: 10px; background: #f7f9fc; }
+.comparison h3 { margin: 0 0 9px; font-size: .94rem; }
+.comparison p { margin: 7px 0 0; color: #344258; font-size: .86rem; line-height: 1.5; overflow-wrap: anywhere; }
+.resolutionActions { display: flex; flex-wrap: wrap; gap: 10px; }
+.resolutionActions button { min-height: 48px; padding: 9px 13px; border: 1px solid #075fac; border-radius: 8px; background: #075fac; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.resolutionActions button + button { border-color: #526176; background: #fff; color: #17263d; }
+.resolutionActions button:disabled { opacity: .6; cursor: wait; }
+.conflictWarning { padding: 10px 12px; border-radius: 8px; background: #fff4e5; color: #7b4100; font-weight: 800; line-height: 1.5; }
 .empty { color: var(--field-muted); line-height: 1.5; }
 .formPanel { padding: clamp(16px, 2.5vw, 25px); }
 .formEmpty { display: grid; min-height: 380px; place-content: center; justify-items: center; text-align: center; }
@@ -127,4 +141,6 @@
   .header { align-items: flex-start; flex-direction: column; }
   .measurements { grid-template-columns: 1fr; }
   .queuePanel, .formPanel { padding: 14px; }
+  .comparison { grid-template-columns: 1fr; }
+  .conflictDialog { padding: 16px; }
 }

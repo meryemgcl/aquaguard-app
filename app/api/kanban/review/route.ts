@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
           temperature: card.measurements?.temperature ?? null,
         },
         expertNotes: card.expertNotes ?? undefined,
+        privacyLevel: card.privacyLevel,
       });
     });
 

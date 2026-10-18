@@ -1,4 +1,4 @@
-import type { WaterIncident, WaterIncidentCategory } from './types';
+import type { IncidentPrivacyLevel, WaterIncident, WaterIncidentCategory } from './types';
 
 export type KanbanColumn =
   | 'yeni'
@@ -23,6 +23,7 @@ export interface StatusAuditEvent {
   role: import('./types').UserRole;
   timestamp: string;
   note: string;
+  resolution?: 'FORCE_OVERWRITE' | 'DISCARDED' | null;
 }
 
 export interface Coordinates {
@@ -52,6 +53,7 @@ export interface KanbanCard extends Pick<WaterIncident, 'id' | 'title' | 'descri
   coordinates: Coordinates | null;
   category: ReportCategory;
   incidentCategory: WaterIncidentCategory;
+  privacyLevel: IncidentPrivacyLevel;
   column: KanbanColumn;
   riskScore: number;
   riskLevel: RiskLevel;
@@ -66,6 +68,7 @@ export interface KanbanCard extends Pick<WaterIncident, 'id' | 'title' | 'descri
   auditTrail: StatusAuditEvent[];
   createdAt: string;
   updatedAt: string;
+  version: number;
   creatorEmail: string;
   assignee: {
     name: string;
