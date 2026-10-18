@@ -4,12 +4,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { recordApproval, getCardById } from '@/lib/kanban';
-import { APPROVAL_ROLES, APPROVAL_NEXT } from '@/lib/kanban-types';
+import { APPROVAL_NEXT } from '@/lib/kanban-types';
 import { requireApiUser } from '@/lib/api-auth';
 import { isRecord } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
-  const auth = await requireApiUser(request, ['yonetici']);
+  const auth = await requireApiUser(request, ['yonetici', 'admin', 'super_admin']);
   if (!auth.user) return auth.response;
 
   try {
@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
     const card = getCardById(cardId);
     if (!card) return NextResponse.json({ error: 'Kart bulunamadı.' }, { status: 404 });
 
-    const allowedRoles = APPROVAL_ROLES[card.column];
-    if (payload.role !== 'yonetici' || !allowedRoles || !allowedRoles.includes(payload.role)) {
+    const isStaffApprover = payload.role === 'yonetici' || payload.role === 'admin' || payload.role === 'super_admin';
+    if (!isStaffApprover || card.column !== 'onay-yonetici') {
       return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
     }
 
@@ -45,6 +45,27 @@ export async function POST(request: NextRequest) {
       reason: note || 'Yönetici tarafından yayımlanması onaylandı.',
     });
     if (!updatedCard) return NextResponse.json({ error: 'Rapor eşzamanlı olarak değişti; yenileyip tekrar deneyin.' }, { status: 409 });
+
+    void import('@/lib/google-sheets-sync').then(({ syncIncidentToGoogleSheets }) => {
+      void syncIncidentToGoogleSheets({
+        trackingCode: updatedCard.trackingCode ?? undefined,
+        createdAt: updatedCard.createdAt,
+        province: updatedCard.province ?? undefined,
+        district: updatedCard.district ?? undefined,
+        category: updatedCard.incidentCategory,
+        riskLevel: updatedCard.riskLevel,
+        status: updatedCard.column,
+        description: updatedCard.description,
+        waterbodyName: updatedCard.location,
+        measurements: {
+          ph: updatedCard.measurements?.ph ?? null,
+          dissolvedOxygen: updatedCard.measurements?.dissolvedO2 ?? null,
+          turbidity: updatedCard.measurements?.turbidity ?? null,
+          temperature: updatedCard.measurements?.temperature ?? null,
+        },
+        expertNotes: updatedCard.expertNotes ?? undefined,
+      });
+    });
 
     return NextResponse.json({ success: true, message: 'İhbar yayımlandı.' });
   } catch (error: unknown) {

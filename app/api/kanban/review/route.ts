@@ -28,14 +28,14 @@ const reviewSchema = z.object({
 }).strict();
 
 export async function POST(request: NextRequest) {
-  const auth = await requireApiUser(request, ['uzman']);
+  const auth = await requireApiUser(request, ['super_admin', 'admin', 'uzman']);
   if (!auth.user) return auth.response;
 
   try {
     const body: unknown = await request.json();
     const start = startSchema.safeParse(body);
     if (start.success) {
-      const card = startExpertReview(start.data.cardId, { name: auth.user.name, role: 'uzman' });
+      const card = startExpertReview(start.data.cardId, { name: auth.user.name, role: auth.user.role });
       if (!card) return NextResponse.json({ error: 'İhbar artık yeni değil veya başka bir uzman başlattı.' }, { status: 409 });
       return NextResponse.json({ success: true });
     }
@@ -61,9 +61,31 @@ export async function POST(request: NextRequest) {
         measurements: parsed.data.measurements,
         note: parsed.data.note,
       },
-      { name: auth.user.name, role: 'uzman' },
+      { name: auth.user.name, role: auth.user.role },
     );
     if (!card) return NextResponse.json({ error: 'İhbar uzman incelemesinde değil veya eşzamanlı olarak değişti.' }, { status: 409 });
+
+    void import('@/lib/google-sheets-sync').then(({ syncIncidentToGoogleSheets }) => {
+      void syncIncidentToGoogleSheets({
+        trackingCode: card.trackingCode ?? undefined,
+        createdAt: card.createdAt,
+        province: card.province ?? undefined,
+        district: card.district ?? undefined,
+        category: card.incidentCategory,
+        riskLevel: card.riskLevel,
+        status: card.column,
+        description: card.description,
+        waterbodyName: card.location,
+        measurements: {
+          ph: card.measurements?.ph ?? null,
+          dissolvedOxygen: card.measurements?.dissolvedO2 ?? null,
+          turbidity: card.measurements?.turbidity ?? null,
+          temperature: card.measurements?.temperature ?? null,
+        },
+        expertNotes: card.expertNotes ?? undefined,
+      });
+    });
+
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     if (error instanceof SyntaxError) {

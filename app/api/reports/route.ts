@@ -39,6 +39,22 @@ export async function POST(req: NextRequest) {
       role: auth.user.role,
     });
 
+    void import('@/lib/google-sheets-sync').then(({ syncIncidentToGoogleSheets }) => {
+      void syncIncidentToGoogleSheets({
+        trackingCode: card.trackingCode,
+        createdAt: card.createdAt,
+        province: card.province ?? undefined,
+        district: card.district ?? undefined,
+        category: card.incidentCategory,
+        riskLevel: card.riskLevel,
+        status: card.column,
+        description: card.description,
+        waterbodyName: card.location,
+        measurements: card.measurements,
+        expertNotes: card.expertNotes ?? undefined,
+      });
+    });
+
     return NextResponse.json({
       success: true,
       trackingCode: card.trackingCode,

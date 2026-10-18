@@ -278,7 +278,7 @@ function appendStatusEvent(
 
 export function startExpertReview(
   cardId: string,
-  actor: { name: string; role: 'uzman' },
+  actor: { name: string; role: UserRole },
 ): KanbanCard | null {
   const transaction = database.transaction(() => {
     const card = readCard(cardId);
@@ -307,7 +307,7 @@ export interface ExpertReviewInput {
 export function updateExpertReview(
   cardId: string,
   input: ExpertReviewInput,
-  actor: { name: string; role: 'uzman' },
+  actor: { name: string; role: UserRole },
 ): KanbanCard | null {
   const transaction = database.transaction(() => {
     const card = readCard(cardId);

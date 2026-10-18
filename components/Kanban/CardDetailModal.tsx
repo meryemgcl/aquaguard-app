@@ -60,6 +60,7 @@ export default function CardDetailModal({ card, onClose, onWorkflowUpdated }: Pr
   const [photos, setPhotos] = useState<string[]>([]);
   const [evidenceError, setEvidenceError] = useState('');
   const [evidenceLoading, setEvidenceLoading] = useState(true);
+  const canPerformExpertReview = user?.role === 'uzman' || user?.role === 'admin' || user?.role === 'super_admin';
   const managerDecision = [...card.auditTrail].reverse().find(event =>
     event.role === 'yonetici' && ['yayinda', 'kapatildi', 'reddedildi'].includes(event.newStatus),
   );
@@ -253,7 +254,7 @@ export default function CardDetailModal({ card, onClose, onWorkflowUpdated }: Pr
             {card.coordinates && <IncidentLocationPreview coordinates={card.coordinates} />}
           </section>
 
-          {user?.role === 'uzman' && card.column === 'yeni' && (
+          {canPerformExpertReview && card.column === 'yeni' && (
             <section style={{ marginBottom: 24, padding: 16, border: '1px solid var(--border)', borderRadius: 12 }}>
               <h3 style={{ marginTop: 0 }}>Uzman incelemesi</h3>
               <p>İncelemeyi başlattığınızda ihbar uzman değerlendirme kuyruğuna alınır.</p>
@@ -264,7 +265,7 @@ export default function CardDetailModal({ card, onClose, onWorkflowUpdated }: Pr
             </section>
           )}
 
-          {user?.role === 'uzman' && card.column === 'onay-uzman' && (
+          {canPerformExpertReview && card.column === 'onay-uzman' && (
             <section style={{ marginBottom: 24, padding: 16, border: '1px solid var(--border)', borderRadius: 12 }}>
               <h3 style={{ marginTop: 0 }}>Uzman değerlendirmesi</h3>
               <div style={{ padding: 12, marginBottom: 12, borderRadius: 8, background: 'var(--bg-input)' }}>
