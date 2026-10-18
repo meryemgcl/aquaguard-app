@@ -38,19 +38,19 @@ jobs:
       - name: Smoke Checks
         run: npm run smoke
 
-      - name: Unit Test: Clustering
+      - name: "Unit Test - Clustering"
         run: npm run test:clustering
 
-      - name: Unit Test: Open Data & GeoJSON
+      - name: "Unit Test - Open Data and GeoJSON"
         run: npm run test:open-data
 
-      - name: Unit Test: Water Measurements
+      - name: "Unit Test - Water Measurements"
         run: npm run test:measurements
 
-      - name: Unit Test: Kanban Workflow & SLA
+      - name: "Unit Test - Kanban Workflow and SLA"
         run: npm run test:workflow
 
-      - name: Unit Test: Media Storage
+      - name: "Unit Test - Media Storage"
         run: npm run test:media
 
       - name: Next.js Production Build
