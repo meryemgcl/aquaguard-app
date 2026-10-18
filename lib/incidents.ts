@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { z } from 'zod';
 import database from '@/lib/local-db';
 import type { WaterIncidentStatus } from '@/lib/types';

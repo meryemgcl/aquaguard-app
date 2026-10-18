@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { Module } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -9,10 +8,6 @@ async function run(): Promise<void> {
   process.env.AQUAGUARD_DB_PATH = databasePath;
   process.env.AQUAGUARD_UPLOAD_DIR = path.join(os.tmpdir(), `aquaguard-workflow-uploads-${process.pid}`);
   process.env.JWT_SECRET = 'workflow-test-secret-that-is-long-enough-123456';
-  const originalRequire = Module.prototype.require;
-  Module.prototype.require = function (id: string): unknown {
-    return id === 'server-only' ? {} : originalRequire.call(this, id);
-  };
 
   let closeDatabase: (() => void) | undefined;
   try {
@@ -380,7 +375,6 @@ async function run(): Promise<void> {
     ).run(forwarded.id), /immutable/);
   } finally {
     closeDatabase?.();
-    Module.prototype.require = originalRequire;
     fs.rmSync(process.env.AQUAGUARD_UPLOAD_DIR!, { recursive: true, force: true });
     for (const suffix of ['', '-wal', '-shm']) {
       try {

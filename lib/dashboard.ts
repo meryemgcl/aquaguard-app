@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { getCards } from '@/lib/kanban';
 import type { DashboardData } from '@/lib/dashboard-types';
 import { toIncidentMapMarker } from '@/lib/incident-map';

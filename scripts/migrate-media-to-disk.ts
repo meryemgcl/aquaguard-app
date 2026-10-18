@@ -1,16 +1,8 @@
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import dotenv from 'dotenv';
 import type { MediaMetadata } from '../lib/media-storage';
 
 dotenv.config({ path: path.join(process.cwd(), '.env.local') });
-
-const moduleRequire = createRequire(import.meta.url);
-const Module = moduleRequire('node:module') as typeof import('node:module');
-const originalRequire = Module.prototype.require;
-Module.prototype.require = function (id: string): unknown {
-  return id === 'server-only' ? {} : originalRequire.call(this, id);
-};
 
 async function main(): Promise<void> {
   const [{ default: database }, { decodeImageDataUrl, removeMediaFiles, saveImageDataUrl }, { encryptReporterContact }] =
@@ -106,6 +98,4 @@ async function main(): Promise<void> {
 void main().catch(error => {
   console.error('Media migration stopped. Completed records remain migrated; unprocessed records retain their legacy data:', error);
   process.exitCode = 1;
-}).finally(() => {
-  Module.prototype.require = originalRequire;
 });

@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import Database from 'better-sqlite3';
-import { Module } from 'node:module';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -12,10 +11,6 @@ async function run(): Promise<void> {
   process.env.AQUAGUARD_DB_PATH = path.join(directory, 'test.db');
   process.env.AQUAGUARD_UPLOAD_DIR = path.join(directory, 'uploads');
   process.env.JWT_SECRET = 'media-test-secret-that-is-long-enough-123456';
-  const originalRequire = Module.prototype.require;
-  Module.prototype.require = function (id: string): unknown {
-    return id === 'server-only' ? {} : originalRequire.call(this, id);
-  };
 
   let closeDatabase: (() => void) | undefined;
   try {
@@ -207,7 +202,6 @@ async function run(): Promise<void> {
     console.log('Local media write, streaming access, migration, privacy, and path traversal tests passed.');
   } finally {
     closeDatabase?.();
-    Module.prototype.require = originalRequire;
     fs.rmSync(directory, { recursive: true, force: true });
   }
 }

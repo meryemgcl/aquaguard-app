@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { randomUUID } from 'node:crypto';
 import { closeSync, mkdirSync, openSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';

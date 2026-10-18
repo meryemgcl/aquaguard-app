@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { randomUUID } from 'node:crypto';
 import database from '@/lib/local-db';
 

@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import database from './local-db';

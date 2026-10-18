@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { randomUUID } from 'node:crypto';
 import { User, SafeUser, UserRole } from './types';
 import database from './local-db';

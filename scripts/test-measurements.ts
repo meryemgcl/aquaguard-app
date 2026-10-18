@@ -1,16 +1,11 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { Module } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 
 async function run(): Promise<void> {
   const databasePath = path.join(os.tmpdir(), `aquaguard-measurements-${process.pid}.db`);
   process.env.AQUAGUARD_DB_PATH = databasePath;
-  const originalRequire = Module.prototype.require;
-  Module.prototype.require = function (id: string): unknown {
-    return id === 'server-only' ? {} : originalRequire.call(this, id);
-  };
 
   let closeDatabase: (() => void) | undefined;
   try {

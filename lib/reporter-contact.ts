@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
 export interface ReporterContact {
