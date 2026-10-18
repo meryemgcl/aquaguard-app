@@ -47,10 +47,10 @@ export default function KanbanCardComponent({
 
   /* Check if current user can approve/reject this card */
   const allowedRoles = APPROVAL_ROLES[card.column];
+  const isManager = userRole === 'yonetici' || userRole === 'admin' || userRole === 'super_admin';
   const canApprove = !!(
     allowedRoles &&
-    (userRole === 'uzman' || userRole === 'yonetici') &&
-    allowedRoles.includes(userRole)
+    (isManager || (userRole === 'uzman' && allowedRoles.includes('uzman')))
   );
 
   const handleApprove = (e: React.MouseEvent) => {

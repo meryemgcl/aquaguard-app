@@ -18,6 +18,7 @@ function card(overrides: Partial<KanbanCard> = {}): KanbanCard {
     coordinates: { lat: 38.8, lng: 26.9 },
     category: 'discharge',
     incidentCategory: 'endüstriyel atık',
+    privacyLevel: 'acik',
     column: 'yayinlandi',
     riskScore: 90,
     riskLevel: 'critical',
@@ -32,6 +33,7 @@ function card(overrides: Partial<KanbanCard> = {}): KanbanCard {
     auditTrail: [],
     createdAt: '2026-05-01T00:00:00.000Z',
     updatedAt: '2026-05-01T01:00:00.000Z',
+    version: 1,
     creatorEmail: 'private@example.test',
     assignee: { name: 'Internal staff', role: 'uzman', initials: 'IS', color: '#000' },
     tags: [],
@@ -69,7 +71,10 @@ const publicIncidents = getExportIncidents([published, resolved, rejected, pendi
 assert.deepEqual(publicIncidents.map(item => item.status), ['yayinda', 'cozuldu']);
 assert.equal(getExportIncidents([published, resolved, rejected, pending], true).length, 4);
 const serializedPublicData = JSON.stringify(publicIncidents);
-for (const privateField of ['reporterEmail', 'reporterPhone', 'managerNotes', 'creatorEmail', 'expertNotes']) {
+for (const privateField of [
+  'reporterEmail', 'reporterPhone', 'reporterName', 'privacyLevel',
+  'reporterContactEncrypted', 'managerNotes', 'creatorEmail', 'expertNotes',
+]) {
   assert.equal(serializedPublicData.includes(privateField), false, `${privateField} must not appear in exports`);
 }
 assert.equal(serializedPublicData.includes('private@example.test'), false);

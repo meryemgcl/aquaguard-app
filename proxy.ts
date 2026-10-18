@@ -3,7 +3,7 @@ import { jwtVerify } from 'jose';
 import { canAccessRoute, getApiAllowedRoles } from '@/lib/permissions';
 
 const PUBLIC_PAGES = ['/login', '/register', '/embed/harita'];
-const OPEN_PAGES = ['/ihbar-takip'];
+const OPEN_PAGES = ['/ihbar', '/ihbar-takip'];
 const KNOWN_ROLES = ['super_admin', 'admin', 'uzman', 'yonetici', 'halk'];
 function getSecret() {
   const secret = process.env.JWT_SECRET;
@@ -28,6 +28,8 @@ export async function proxy(request: NextRequest) {
       pathname === '/api/auth/register' ||
       pathname === '/api/cron/daily-report' ||
       pathname === '/api/embed/harita' ||
+      (pathname === '/api/reports' && request.method === 'POST') ||
+      pathname.startsWith('/api/media/') ||
       pathname.startsWith('/api/export/') ||
       (pathname === '/api/saha/queue' && request.method === 'GET') ||
       pathname.startsWith('/api/public/incidents/') ||

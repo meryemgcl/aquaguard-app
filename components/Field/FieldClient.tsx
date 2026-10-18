@@ -7,6 +7,7 @@ import {
   enqueueFieldInspection,
   getCachedFieldIncidents,
   getOfflineInspectionQueue,
+  replaceQueuedFieldInspection,
   synchronizeFieldQueue,
   type CachedFieldIncident,
   type QueuedFieldInspection,
@@ -41,6 +42,7 @@ function isCard(value: unknown): value is KanbanCard {
     typeof card.description === 'string' &&
     typeof card.column === 'string' &&
     typeof card.createdAt === 'string' &&
+    typeof card.version === 'number' &&
     Array.isArray(card.photos);
 }
 
@@ -58,6 +60,7 @@ function asCachedIncident(card: KanbanCard): Omit<CachedFieldIncident, 'cachedAt
     column: card.column,
     photos: card.photos,
     createdAt: card.createdAt,
+    version: card.version,
   };
 }
 
@@ -70,7 +73,9 @@ function isQueuedItem(value: unknown): value is QueuedFieldInspection {
   if (!value || typeof value !== 'object') return false;
   return 'queueId' in value && typeof value.queueId === 'string' &&
     'incidentId' in value && typeof value.incidentId === 'string' &&
-    'syncStatus' in value && value.syncStatus === 'Senkronizasyon Bekliyor';
+    'clientMutationId' in value && typeof value.clientMutationId === 'string' &&
+    'baseVersion' in value && typeof value.baseVersion === 'number' &&
+    'syncStatus' in value && typeof value.syncStatus === 'string';
 }
 
 export default function FieldClient() {
@@ -174,6 +179,7 @@ export default function FieldClient() {
   }, [cachedIncidents, incidents, queue]);
 
   const selected = allIncidents.find(incident => incident.id === selectedId) ?? null;
+  const selectedQueued = queue.find(item => item.incidentId === selectedId) ?? null;
   const selectedIsFullCard = selected !== null && 'riskLevel' in selected;
   const selectedPhotos = selected?.photos ?? [];
   const queuedIds = new Set(queue.map(item => item.incidentId));
@@ -268,36 +274,35 @@ export default function FieldClient() {
       return;
     }
     const payload: FieldInspectionPayload = {
+      clientMutationId: crypto.randomUUID(),
       incidentId: selected.id,
+      baseVersion: selected.version,
       verdict,
-      note: cleanNote,
+      notes: cleanNote,
       measurements,
-      photos,
-      submittedAt: new Date().toISOString(),
+      fieldPhotos: photos,
+      timestamp: new Date().toISOString(),
     };
 
     setSubmitting(true);
     setError(null);
     try {
+      enqueueFieldInspection(payload);
+      refreshBrowserStorage();
       if (!navigator.onLine) {
-        enqueueFieldInspection(payload);
-        refreshBrowserStorage();
         setMessage('Saha kaydı cihazda güvenle saklandı. Bağlantı sağlandığında eşitlenecek.');
       } else {
-        const response = await fetch('/api/saha/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ inspections: [payload] }),
-        });
-        const result: unknown = await response.json();
-        if (!response.ok) {
-          const detail = typeof result === 'object' && result !== null && 'error' in result &&
-            typeof result.error === 'string' ? result.error : 'Saha kaydı kaydedilemedi.';
-          throw new Error(detail);
+        const result = await synchronizeFieldQueue();
+        refreshBrowserStorage();
+        if (result.conflicts) {
+          setMessage('Saha kaydı sunucudaki değişiklikle çakıştı. İnceleyip karar verin.');
+        } else if (result.rejected) {
+          setMessage('Saha kaydı reddedildi; ayrıntı için bekleyen kayıt durumunu inceleyin.');
+        } else {
+          setMessage('Saha ölçümü ve inceleme SQLite kaydına eklendi.');
         }
-        setMessage('Saha ölçümü ve inceleme SQLite kaydına eklendi.');
       }
-      setSelectedId(null);
+      if (!getOfflineInspectionQueue().some(item => item.incidentId === selected.id)) setSelectedId(null);
       setMeasurements({});
       setVerdict('confirmed');
       setNote('');
@@ -307,6 +312,44 @@ export default function FieldClient() {
       setError(submitError instanceof Error ? submitError.message : 'Saha kaydı gönderilemedi.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const resolveConflict = async (resolution: 'FORCE_OVERWRITE' | 'DISCARDED') => {
+    if (!selectedQueued?.serverIncident || syncing) return;
+    const serverIncident = selectedQueued.serverIncident;
+    const payload: FieldInspectionPayload = {
+      clientMutationId: crypto.randomUUID(),
+      incidentId: selectedQueued.incidentId,
+      baseVersion: serverIncident.version,
+      verdict: selectedQueued.verdict,
+      notes: resolution === 'DISCARDED'
+        ? 'Uzman, saha ölçümünü uygulamadan sunucu sürümünü kabul etti.'
+        : selectedQueued.notes,
+      measurements: resolution === 'DISCARDED' ? {} : selectedQueued.measurements,
+      fieldPhotos: resolution === 'DISCARDED' ? [] : selectedQueued.fieldPhotos,
+      timestamp: new Date().toISOString(),
+      resolution,
+    };
+    try {
+      replaceQueuedFieldInspection(selectedQueued.clientMutationId, payload);
+      refreshBrowserStorage();
+      if (navigator.onLine) {
+        setSyncing(true);
+        const result = await synchronizeFieldQueue();
+        refreshBrowserStorage();
+        if (result.conflicts) setMessage('Sunucu sürümü yeniden değişti. Çakışmayı tekrar inceleyin.');
+        else if (result.rejected) setError('Çakışma kararı uygulanamadı; kayıt kuyrukta tutuldu.');
+        else setMessage(resolution === 'DISCARDED'
+          ? 'Sunucunun güncel sürümü kabul edildi.'
+          : 'Saha ölçümleri açık onayınızla güncel sürüme uygulandı.');
+      } else {
+        setMessage('Çakışma kararınız cihazda saklandı; bağlantı gelince gönderilecek.');
+      }
+    } catch (resolveError) {
+      setError(resolveError instanceof Error ? resolveError.message : 'Çakışma kararı kaydedilemedi.');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -342,8 +385,9 @@ export default function FieldClient() {
           {loading && allIncidents.length === 0 ? <p className={styles.empty}>Görevler yükleniyor…</p>
             : allIncidents.length === 0 ? <p className={styles.empty}>Şu anda sahada incelenecek ihbar bulunmuyor.</p>
               : allIncidents.map(incident => {
-                const cached = cachedIncidents.some(item => item.id === incident.id);
-                const pending = queuedIds.has(incident.id);
+                const cachedIncident = cachedIncidents.find(item => item.id === incident.id);
+                const cached = Boolean(cachedIncident && cachedIncident.version >= incident.version);
+                const queuedItem = queue.find(item => item.incidentId === incident.id);
                 return (
                   <article className={`${styles.taskCard} ${selectedId === incident.id ? styles.selectedTask : ''}`} key={incident.id}>
                     <button className={styles.taskSelect} type="button" onClick={() => {
@@ -361,7 +405,14 @@ export default function FieldClient() {
                     <button type="button" className={styles.downloadButton} onClick={() => prepareOffline(incident)} disabled={cached}>
                       {cached ? '✓ Cihaza indirildi' : 'Cihaza İndir / Çevrimdışı Hazırla'}
                     </button>
-                    {pending && <span className={styles.pendingLabel}>Senkronizasyon Bekliyor</span>}
+                    {queuedItem?.syncStatus === 'Çakışma İncelemesi Gerekli' ? (
+                      <button type="button" className={styles.conflictLabel} onClick={() => setSelectedId(incident.id)}>
+                        ⚠️ Çakışma İncelemesini Aç
+                      </button>
+                    ) : queuedItem ? (
+                      <span className={styles.pendingLabel}>{queuedItem.syncStatus}</span>
+                    ) : null}
+                    {queuedItem?.syncMessage && <span className={styles.queueMessage}>{queuedItem.syncMessage}</span>}
                   </article>
                 );
               })}
@@ -371,7 +422,43 @@ export default function FieldClient() {
           {!selected ? (
             <div className={styles.formEmpty}><span aria-hidden="true">⌖</span><h2>Bir görev seçin</h2><p>İnceleme ve saha ölçümü formunu açmak için görev kartına dokunun.</p></div>
           ) : queuedIds.has(selected.id) ? (
-            <div className={styles.formEmpty}><span aria-hidden="true">✓</span><h2>Senkronizasyon bekliyor</h2><p>Bu ihbarın saha kaydı cihazda güvenle saklanıyor.</p></div>
+            selectedQueued?.syncStatus === 'Çakışma İncelemesi Gerekli' && selectedQueued.serverIncident ? (
+              <section className={styles.conflictDialog} role="dialog" aria-modal="true" aria-labelledby="conflict-title">
+                <button type="button" className={styles.dialogClose} onClick={() => setSelectedId(null)} aria-label="Çakışma penceresini kapat">✕</button>
+                <span className={styles.conflictLabel}>⚠️ Çakışma İnceleme (Conflict Resolution)</span>
+                <h2 id="conflict-title">Saha ve merkez kayıtları farklı</h2>
+                <p>{selectedQueued.serverIncident.title} · Sunucu sürümü {selectedQueued.serverIncident.version} · {selectedQueued.serverIncident.updatedAt}</p>
+                <div className={styles.comparison}>
+                  <article>
+                    <h3>Sizin Saha Ölçümünüz</h3>
+                    <p>pH: {selectedQueued.measurements.ph ?? '—'} · Oksijen: {selectedQueued.measurements.dissolvedO2 ?? '—'} mg/L</p>
+                    <p>{selectedQueued.notes}</p>
+                  </article>
+                  <article>
+                    <h3>Merkezin Güncel Durumu</h3>
+                    <p>{selectedQueued.serverIncident.status} · {selectedQueued.serverIncident.column}</p>
+                    <p>pH: {selectedQueued.serverIncident.measurements?.ph ?? '—'} · Oksijen: {selectedQueued.serverIncident.measurements?.dissolvedO2 ?? '—'} mg/L</p>
+                    <p>{selectedQueued.serverIncident.managerNotes || selectedQueued.serverIncident.expertNotes || 'Merkez notu bulunmuyor.'}</p>
+                  </article>
+                </div>
+                <div className={styles.resolutionActions}>
+                  <button
+                    type="button"
+                    onClick={() => void resolveConflict('FORCE_OVERWRITE')}
+                    disabled={syncing || !['yeni', 'ai-analiz', 'onay-uzman'].includes(selectedQueued.serverIncident.column)}
+                  >
+                    Zorla Güncelle (Saha ölçümlerimi uygula)
+                  </button>
+                  <button type="button" onClick={() => void resolveConflict('DISCARDED')} disabled={syncing}>
+                    Sunucu Sürümünü Kabul Et ve Vazgeç
+                  </button>
+                </div>
+                {!['yeni', 'ai-analiz', 'onay-uzman'].includes(selectedQueued.serverIncident.column) &&
+                  <p className={styles.conflictWarning}>Merkez kaydı kapatılmış veya yönetici kararı verilmiş. Zorla güncelleme bu kararı değiştiremez.</p>}
+              </section>
+            ) : (
+              <div className={styles.formEmpty}><span aria-hidden="true">✓</span><h2>Senkronizasyon bekliyor</h2><p>Bu ihbarın saha kaydı cihazda güvenle saklanıyor.</p></div>
+            )
           ) : (
             <>
               <header className={styles.formHeader}>

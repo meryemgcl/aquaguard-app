@@ -52,12 +52,26 @@ const riskLabels: Record<KanbanCard['riskLevel'], string> = {
   critical: 'Kritik',
 };
 
+type PublicIncidentProjection = Pick<KanbanCard,
+  | 'column'
+  | 'resolution'
+  | 'trackingCode'
+  | 'title'
+  | 'incidentCategory'
+  | 'riskLevel'
+  | 'riskAssessed'
+  | 'province'
+  | 'district'
+  | 'coordinates'
+  | 'createdAt'
+>;
+
 export function isPubliclyVisibleIncident(card: Pick<KanbanCard, 'column' | 'resolution'>): boolean {
   return card.column === 'yayinlandi' ||
     (card.column === 'reddedildi' && card.resolution === 'kapatildi');
 }
 
-export function toOpenDataIncident(card: KanbanCard): OpenDataIncident {
+export function toOpenDataIncident(card: PublicIncidentProjection): OpenDataIncident {
   const status = card.column === 'yayinlandi'
     ? 'yayinda'
     : card.column === 'reddedildi' && card.resolution === 'kapatildi'

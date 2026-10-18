@@ -3,9 +3,8 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/components/AuthProvider/AuthProvider';
 import { incidentSubmissionSchema } from '@/lib/incident-validation';
-import type { Coordinates, WaterIncidentCategory } from '@/lib/types';
+import type { Coordinates, IncidentPrivacyLevel, WaterIncidentCategory } from '@/lib/types';
 import styles from './page.module.css';
 
 const IncidentMapPicker = dynamic(() => import('./IncidentMapPicker'), {
@@ -25,8 +24,8 @@ const CATEGORIES: WaterIncidentCategory[] = [
   'balık ölümü',
   'renk/koku değişimi',
 ];
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
-const MAX_TOTAL_BYTES = 6 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 20 * 1024 * 1024;
 const MAX_IMAGES = 4;
 
 function formatFileSize(size: number) {
@@ -46,13 +45,14 @@ function fileToDataUrl(file: File): Promise<string> {
 }
 
 export default function IncidentReportForm() {
-  const { user } = useAuth();
   const [category, setCategory] = useState<WaterIncidentCategory | ''>('');
   const [description, setDescription] = useState('');
   const [addressText, setAddressText] = useState('');
   const [province, setProvince] = useState('');
   const [district, setDistrict] = useState('');
   const [contact, setContact] = useState('');
+  const [reporterName, setReporterName] = useState('');
+  const [privacyLevel, setPrivacyLevel] = useState<IncidentPrivacyLevel>('anonim');
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [evidence, setEvidence] = useState<EvidenceFile[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -104,14 +104,14 @@ export default function IncidentReportForm() {
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
         nextErrors.push(`${file.name}: JPG, PNG veya WebP kullanın.`);
       } else if (file.size > MAX_IMAGE_BYTES) {
-        nextErrors.push(`${file.name}: Görsel 2 MB'dan küçük olmalıdır.`);
+        nextErrors.push(`${file.name}: Görsel 5 MB sınırını aşmamalıdır.`);
       }
     }
     const validIncoming = incoming.filter(file =>
       ['image/jpeg', 'image/png', 'image/webp'].includes(file.type) && file.size <= MAX_IMAGE_BYTES,
     );
     if (totalCurrentSize + validIncoming.reduce((sum, file) => sum + file.size, 0) > MAX_TOTAL_BYTES) {
-      nextErrors.push('Fotoğrafların toplam boyutu 6 MB sınırını aşamaz.');
+      nextErrors.push('Fotoğrafların toplam boyutu 20 MB sınırını aşamaz.');
     }
     setFormError(nextErrors.join(' '));
 
@@ -150,12 +150,14 @@ export default function IncidentReportForm() {
     }
 
     const validation = incidentSubmissionSchema.safeParse({
+      privacyLevel,
+      reporterName: privacyLevel === 'anonim' ? undefined : reporterName,
+      contact: privacyLevel === 'anonim' ? undefined : contact,
       category,
       description,
       addressText,
       province,
       district,
-      contact,
       coordinates,
       photos: photoData,
     });
@@ -166,7 +168,10 @@ export default function IncidentReportForm() {
         nextErrors[key] ??= issue.message;
       });
       setErrors(nextErrors);
-      document.getElementById(`incident-${Object.keys(nextErrors)[0]}`)?.focus();
+      const firstInvalid = Object.keys(nextErrors)[0];
+      document.getElementById(firstInvalid === 'reporterName'
+        ? 'incident-reporter-name'
+        : `incident-${firstInvalid}`)?.focus();
       return;
     }
 
@@ -335,7 +340,7 @@ export default function IncidentReportForm() {
 
           <label className={styles.uploadArea} htmlFor="incident-photos">
             <span className={styles.uploadIcon} aria-hidden="true">＋</span>
-            <span><strong>Fotoğraf seçin veya çekin</strong><br />JPG, PNG veya WebP · en fazla 4 görsel · her biri 2 MB</span>
+            <span><strong>Fotoğraf seçin veya çekin</strong><br />JPG, PNG veya WebP · en fazla 4 görsel · her biri 5 MB</span>
             <input
               id="incident-photos"
               type="file"
@@ -349,7 +354,7 @@ export default function IncidentReportForm() {
               aria-describedby={errors.photos ? 'error-photos' : 'photo-help'}
             />
           </label>
-          <span id="photo-help" className={styles.helper}>Toplam görsel boyutu 6 MB ile sınırlıdır.</span>
+          <span id="photo-help" className={styles.helper}>Toplam görsel boyutu 20 MB ile sınırlıdır. Fotoğraflar bu cihazdaki yerel dosya alanında saklanır.</span>
           {errors.photos && <p id="error-photos" className={styles.fieldError} role="alert">{errors.photos}</p>}
 
           {evidence.length > 0 && (
@@ -377,33 +382,67 @@ export default function IncidentReportForm() {
           <div className={styles.sectionHeading}>
             <span className={styles.sectionNumber}>4</span>
             <div>
-              <h2 id="incident-contact-heading">Size nasıl ulaşalım?</h2>
-              <p>Gerekirse ihbar hakkında size soru sorabilmemiz için bir iletişim bilgisi girin.</p>
+              <h2 id="incident-contact-heading">Gizlilik ve geri dönüş tercihi</h2>
+              <p>İletişim bilgisi vermek zorunlu değildir. Tercihinizi gönderimden önce değiştirebilirsiniz.</p>
             </div>
           </div>
-          <label className={styles.field} htmlFor="incident-contact">
-            <span>E-posta adresi veya telefon <span aria-hidden="true">*</span></span>
-            <input
-              id="incident-contact"
-              type="text"
-              autoComplete="on"
-              value={contact || user?.email || ''}
-              onChange={event => setContact(event.target.value)}
-              placeholder="ornek@eposta.com veya +90 5xx xxx xx xx"
-              maxLength={254}
-              aria-invalid={!!errors.contact}
-              aria-describedby={errors.contact ? 'error-contact' : undefined}
-              required
-            />
-            {errors.contact && <span id="error-contact" className={styles.fieldError}>{errors.contact}</span>}
-          </label>
+          <fieldset className={styles.privacyOptions}>
+            <legend>Bildirim gizliliği</legend>
+            <label className={styles.privacyChoice}>
+              <input type="radio" name="privacy-level" value="anonim" checked={privacyLevel === 'anonim'} onChange={() => setPrivacyLevel('anonim')} />
+              <span><strong>Tam anonim</strong><small>Ad veya iletişim bilgisi alınmaz. Takip kodunuzu saklayın.</small></span>
+            </label>
+            <label className={styles.privacyChoice}>
+              <input type="radio" name="privacy-level" value="gizli_iletisim" checked={privacyLevel === 'gizli_iletisim'} onChange={() => setPrivacyLevel('gizli_iletisim')} />
+              <span><strong>Gizli iletişim</strong><small>Geri dönüş bilgisi şifreli saklanır; yalnızca yetkili yönetici rolleri görüntüleyebilir.</small></span>
+            </label>
+            <label className={styles.privacyChoice}>
+              <input type="radio" name="privacy-level" value="acik" checked={privacyLevel === 'acik'} onChange={() => setPrivacyLevel('acik')} />
+              <span><strong>Açık bildirim</strong><small>Adınız ve geri dönüş bilginiz yalnızca yetkili personel ekranında görünür.</small></span>
+            </label>
+          </fieldset>
+          {privacyLevel !== 'anonim' && (
+            <>
+              <label className={styles.field} htmlFor="incident-reporter-name">
+                <span>Ad veya bildirim adı <span aria-hidden="true">*</span></span>
+                <input
+                  id="incident-reporter-name"
+                  type="text"
+                  autoComplete="name"
+                  value={reporterName}
+                  onChange={event => setReporterName(event.target.value)}
+                  maxLength={120}
+                  aria-invalid={!!errors.reporterName}
+                  aria-describedby={errors.reporterName ? 'error-reporterName' : undefined}
+                  required
+                />
+                {errors.reporterName && <span id="error-reporterName" className={styles.fieldError}>{errors.reporterName}</span>}
+              </label>
+              <label className={styles.field} htmlFor="incident-contact">
+                <span>E-posta adresi veya telefon <span aria-hidden="true">*</span></span>
+                <input
+                  id="incident-contact"
+                  type="text"
+                  autoComplete="email"
+                  value={contact}
+                  onChange={event => setContact(event.target.value)}
+                  placeholder="ornek@eposta.com veya +90 5xx xxx xx xx"
+                  maxLength={254}
+                  aria-invalid={!!errors.contact}
+                  aria-describedby={errors.contact ? 'error-contact' : undefined}
+                  required
+                />
+                {errors.contact && <span id="error-contact" className={styles.fieldError}>{errors.contact}</span>}
+              </label>
+            </>
+          )}
         </section>
 
         {formError && <p className={styles.formError} role="alert">{formError}</p>}
         <button className={`btn btn-primary ${styles.submitButton}`} type="submit" disabled={submitting}>
           {submitting ? 'İhbar kaydediliyor…' : 'İhbarı Gönder'}
         </button>
-        <p className={styles.privacyNote}>İletişim bilgileri ve fotoğraflar yerel AquaGuard veritabanında saklanır.</p>
+        <p className={styles.privacyNote}>İhbar verileri yerel AquaGuard sisteminde saklanır. Tam anonim seçiminde iletişim bilgisi alınmaz. Gizli iletişim bilgisi uygulama tarafından şifrelenerek saklanır. Takip kodunuzu güvenli yerde tutun.</p>
       </form>
 
       {trackingCode && (

@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCardPhotos } from '@/lib/kanban';
 import { requireApiUser, STAFF_ROLES } from '@/lib/api-auth';
-import { incidentPhotoSchema } from '@/lib/incident-validation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const photosSchema = z.array(incidentPhotoSchema).max(4);
+const photosSchema = z.array(z.string().regex(/^\/api\/media\/inc-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:jpg|png|webp)$/)).max(4);
 
 export async function GET(
   request: NextRequest,

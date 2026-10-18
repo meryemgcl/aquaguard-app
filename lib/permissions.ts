@@ -12,8 +12,9 @@ export const SYSTEM_ADMIN_ROLES: readonly UserRole[] = ['super_admin'];
 
 export function getApiAllowedRoles(pathname: string): readonly UserRole[] | null {
   if (pathname === '/api/kanban') return STAFF_ROLES;
+  if (/^\/api\/kanban\/[^/]+\/reporter$/.test(pathname)) return ['yonetici', 'admin', 'super_admin'];
   if (pathname === '/api/saha/queue' || pathname === '/api/saha/sync') return ['super_admin', 'admin', 'uzman'];
-  if (pathname.startsWith('/api/kanban/review')) return ['uzman'];
+  if (pathname.startsWith('/api/kanban/review')) return ['super_admin', 'admin', 'uzman'];
   if (pathname.startsWith('/api/kanban/approve') || pathname.startsWith('/api/kanban/reject')) return STAFF_ROLES;
   if (pathname.startsWith('/api/v2/ai/')) return STAFF_ROLES;
   if (pathname === '/api/users' || pathname.startsWith('/api/users/')) return USER_ADMIN_ROLES;

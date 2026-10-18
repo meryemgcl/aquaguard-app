@@ -13,7 +13,9 @@
     "test:clustering": "tsx scripts/test-clustering.ts",
     "test:open-data": "tsx scripts/test-open-data.ts",
     "test:workflow": "tsx scripts/test-kanban-workflow.ts",
-    "test": "npm run lint && npm run typecheck && npm run smoke && npm run test:measurements && npm run test:clustering && npm run test:open-data && npm run test:workflow && npm run build",
+    "test:media": "tsx scripts/test-media-storage.ts",
+    "migrate:media": "tsx scripts/migrate-media-to-disk.ts",
+    "test": "npm run lint && npm run typecheck && npm run smoke && npm run test:measurements && npm run test:clustering && npm run test:open-data && npm run test:workflow && npm run test:media && npm run build",
     "seed:db": "tsx scripts/seed.ts",
     "clear:db": "tsx scripts/clear-db.ts"
   },

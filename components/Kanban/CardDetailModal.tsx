@@ -60,6 +60,10 @@ export default function CardDetailModal({ card, onClose, onWorkflowUpdated }: Pr
   const [photos, setPhotos] = useState<string[]>([]);
   const [evidenceError, setEvidenceError] = useState('');
   const [evidenceLoading, setEvidenceLoading] = useState(true);
+  const [reporter, setReporter] = useState<{ reporterName: string; contact: string | null } | null>(null);
+  const [reporterError, setReporterError] = useState('');
+  const canViewReporterContact = user?.role === 'yonetici' || user?.role === 'admin' || user?.role === 'super_admin';
+  const canPerformExpertReview = user?.role === 'uzman' || user?.role === 'admin' || user?.role === 'super_admin';
   const managerDecision = [...card.auditTrail].reverse().find(event =>
     event.role === 'yonetici' && ['yayinda', 'kapatildi', 'reddedildi'].includes(event.newStatus),
   );
@@ -104,6 +108,33 @@ export default function CardDetailModal({ card, onClose, onWorkflowUpdated }: Pr
     void loadEvidence();
     return () => controller.abort();
   }, [card.id]);
+
+  useEffect(() => {
+    if (!canViewReporterContact) return;
+    const controller = new AbortController();
+    void fetch(`/api/kanban/${encodeURIComponent(card.id)}/reporter`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    }).then(async response => {
+      const body: unknown = await response.json();
+      if (!response.ok) throw new Error('İhbarcı bilgisi yetkili ekrandan alınamadı.');
+      if (!body || typeof body !== 'object' || !('reporter' in body) ||
+          typeof body.reporter !== 'object' || body.reporter === null ||
+          !('reporterName' in body.reporter) || typeof body.reporter.reporterName !== 'string' ||
+          !('contact' in body.reporter) ||
+          (body.reporter.contact !== null && typeof body.reporter.contact !== 'string')) {
+        throw new Error('İhbarcı bilgisi beklenen biçimde değil.');
+      }
+      setReporter({
+        reporterName: body.reporter.reporterName,
+        contact: body.reporter.contact,
+      });
+    }).catch(error => {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      setReporterError(error instanceof Error ? error.message : 'İhbarcı bilgisi yüklenemedi.');
+    });
+    return () => controller.abort();
+  }, [canViewReporterContact, card.id]);
 
   const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose();
@@ -235,6 +266,19 @@ export default function CardDetailModal({ card, onClose, onWorkflowUpdated }: Pr
           {/* Description */}
           <div className={styles.descSection}>{card.description}</div>
 
+          <section className="no-print" style={{ marginBottom: 20 }}>
+            <strong>Bildirim gizliliği: </strong>
+            {card.privacyLevel === 'anonim' ? 'Tam anonim' :
+              card.privacyLevel === 'gizli_iletisim' ? 'Gizli iletişim' : 'Açık bildirim'}
+            {canViewReporterContact && card.privacyLevel !== 'anonim' && (
+              reporterError ? <p role="alert" style={{ color: 'var(--danger)' }}>{reporterError}</p> :
+                reporter ? <p>{reporter.reporterName} · {reporter.contact ?? 'İletişim bilgisi yok'}</p> :
+                  <p>Yetkili iletişim bilgisi yükleniyor…</p>
+            )}
+            {!canViewReporterContact && card.privacyLevel !== 'anonim' &&
+              <p>İletişim bilgisi yalnızca yönetici yetkisi olan personel tarafından görüntülenebilir.</p>}
+          </section>
+
           <section style={{ marginBottom: 24 }}>
             <h3 style={{ margin: '0 0 10px', fontSize: 14, color: 'var(--text-primary)' }}>Kanıt ve konum</h3>
             {evidenceError ? <p role="alert" style={{ color: 'var(--danger)' }}>{evidenceError}</p> : photos.length > 0 ? (
@@ -253,7 +297,7 @@ export default function CardDetailModal({ card, onClose, onWorkflowUpdated }: Pr
             {card.coordinates && <IncidentLocationPreview coordinates={card.coordinates} />}
           </section>
 
-          {user?.role === 'uzman' && card.column === 'yeni' && (
+          {canPerformExpertReview && card.column === 'yeni' && (
             <section style={{ marginBottom: 24, padding: 16, border: '1px solid var(--border)', borderRadius: 12 }}>
               <h3 style={{ marginTop: 0 }}>Uzman incelemesi</h3>
               <p>İncelemeyi başlattığınızda ihbar uzman değerlendirme kuyruğuna alınır.</p>
@@ -264,7 +308,7 @@ export default function CardDetailModal({ card, onClose, onWorkflowUpdated }: Pr
             </section>
           )}
 
-          {user?.role === 'uzman' && card.column === 'onay-uzman' && (
+          {canPerformExpertReview && card.column === 'onay-uzman' && (
             <section style={{ marginBottom: 24, padding: 16, border: '1px solid var(--border)', borderRadius: 12 }}>
               <h3 style={{ marginTop: 0 }}>Uzman değerlendirmesi</h3>
               <div style={{ padding: 12, marginBottom: 12, borderRadius: 8, background: 'var(--bg-input)' }}>

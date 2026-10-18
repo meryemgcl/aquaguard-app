@@ -59,9 +59,10 @@ flowchart TD
 ## ✨ Temel Yetenekler ve Özellikler
 
 ### 1. 📱 Vatandaş Kanıt Zinciri & Şeffaf Takip
-* **Mobil Öncelikli İhbar (`/ihbar`):** HTML5 Geolocation ("Konumumu Al") veya harita üzerinden nokta atışı pin seçimi.
-* **Fotoğraf ve Kanıt Yükleme:** İstemci tarafında anlık küçük resim önizlemesi ve metadata doğrulama.
-* **Benzersiz Takip Kodu:** Her ihbara özel üretilen `AG-2026-XXXX` kodu ile oturum açmaya gerek kalmadan `/ihbar-takip` üzerinden anlık süreç aşamalarını izleme.
+* **Mobil Öncelikli İhbar (`/ihbar`):** Oturum açmadan HTML5 Geolocation veya harita üzerinden konum seçerek ihbar gönderme.
+* **İhbarcı Gizlilik Seçenekleri:** Tam anonim bildirim; şifreli ve yalnızca yetkili yöneticilere açık gizli iletişim; açık bildirim.
+* **Yerel Fotoğraf Depolama:** En fazla 5 MB JPEG/PNG/WebP dosyaları `data/uploads/` altında doğrulanır ve SQLite'da yalnızca metadata tutulur.
+* **Benzersiz Takip Kodu:** Yeni ihbarlarda 128-bit rastgele takip kodu oluşturulur; kodu elinde bulunduran kişi `/ihbar-takip` üzerinden süreci görüntüler. Kodu gizli tutun.
 
 ### 2. 🧪 Çevre Uzmanı İncelemesi & Saha Ölçümleri
 * **Teknik İnceleme Modalı:** Uydu/koordinat haritası, yüksek çözünürlüklü kanıt fotoğrafları ve Zod ile doğrulanmış veri girişi.
@@ -81,11 +82,13 @@ flowchart TD
 * **Gömülebilir Harita (`/embed/harita`):** Belediyelerin, kaymakamlıkların veya STK'ların kendi web sitelerine tek satır `<iframe>` ile ekleyebileceği, yalnızca doğrulanmış olayları gösteren bağımsız harita.
 * **GeoJSON Dışa Aktarımı (`/api/export/geojson`):** RFC 7946 standardında `[boylam, enlem]` koordinatlarıyla QGIS, ArcGIS ve Google Earth uyumlu coğrafi veri seti.
 * **Excel Uyumlu CSV (`/api/export/csv`):** Türkçe karakterlerin bozulmasını önleyen UTF-8 BOM ve noktalı virgül (`;`) ayracı.
-* **Kişisel Veri Koruması:** Kamuya açık dışa aktarımlarda ihbarcının adı, telefonu ve kurum içi notlar kesinlikle filtrelenir.
+* **Kişisel Veri Koruması:** Kamuya açık dışa aktarımlarda ihbarcının kimlik/iletişim bilgileri ve kurum içi notlar yer almaz. Gizli iletişim alanı AES-256-GCM ile şifrelenir; anahtar JWT_SECRET'ten türetilir.
 
 ### 6. 📴 Saha Ekibi ve Çevrimdışı (Offline-Resilient) Mod (`/saha`)
 * İnternetin çekmediği göl, nehir ve kırsal alanlarda çalışan uzmanlar için tablet uyumlu saha arayüzü.
-* Saha ölçümlerinin ve fotoğrafların `localStorage` / IndexedDB üzerinde çevrimdışı önbelleğe alınması ve merkeze dönüldüğünde tek tıkla senkronizasyonu.
+* Görev önbelleği ve saha ölçümleri tarayıcı `localStorage` alanında saklanır; her görev, indirildiği SQLite `version` bilgisini de taşır.
+* `/api/saha/sync` kayıtları bağımsız işler ve her mutation için sabit `clientMutationId` ile tekrar gönderimleri SQLite'ta idempotent biçimde yanıtlar. Başarılı kayıtlar cihaz kuyruğundan kaldırılır; başarısız veya çakışan kayıtlar korunur.
+* Sunucu sürümü değişmişse ölçümler otomatik yazılmaz. Uzman, saha ve merkez verilerini karşılaştırıp açıkça güncel sürüme uygulama veya sunucu sürümünü kabul ederek vazgeçme kararı verir. Kapatılmış/yönetici kararı verilmiş kayıtlar zorla değiştirilemez; çözüm eylemleri denetim izine eklenir.
 
 ### 7. 🔒 Değiştirilemez Denetim İzi (Immutable Audit Trail)
 * Durum geçişleri sürükle-bırakla değil, rol kontrollü API işlemleriyle yapılır.
@@ -155,6 +158,14 @@ flowchart TD
    ```
    *Not: Bu komut SQLite şemasını ve ilk süper yönetici hesabını oluşturur; sahte/demo veri eklemez.*
 
+   Eski veritabanlarında base64 fotoğrafları yerel dosyalara taşımak için önce uygulamayı durdurup SQLite dosyasını ve `data/` klasörünü yedekleyin. `.env.local` içindeki JWT_SECRET'i de koruyarak aşağıdaki geçişi çalıştırın:
+   ```powershell
+   npm run migrate:media
+   ```
+   Geçiş eski `photos_json` alanını kaldırır; medya dosyaları `data/uploads/` altında, iletişim bilgileri şifreli olarak saklanır. Gizli iletişim verisini okuyabilmek için kullanılan JWT_SECRET aynı kalmalıdır.
+
+   *Hukuki not: Gizli ihbarcı seçenekleri teknik gizlilik kontrolleri sağlar; KVKK, saklama süreleri ve ihbarcı koruma mevzuatına uygunluk için kurumun hukuk/uyum biriminden ayrıca onay alınmalıdır.*
+
 4. **Geliştirme Sunucusunu Başlatın:**
    ```powershell
    npm run dev
@@ -198,7 +209,7 @@ npm test
 │   ├── raporlarim/          # Kullanıcıya ait ihbar geçmişi
 │   └── saha/                # Çevrimdışı saha ölçüm ve inceleme ekranı
 ├── components/              # Yeniden kullanılabilir UI, Harita ve Modal bileşenleri
-├── data/                    # Yerel SQLite veritabanı (aquaguard.db - Git'e eklenmez)
+├── data/                    # Yerel SQLite veritabanı ve uploads/ medya dosyaları (Git'e eklenmez)
 ├── lib/
 │   ├── clustering.ts        # Haversine spatio-temporal kümelenme motoru
 │   ├── local-db.ts          # better-sqlite3 veritabanı sürücüsü ve şema yöneticisi

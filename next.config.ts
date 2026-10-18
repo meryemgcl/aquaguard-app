@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   experimental: {
     cpus: 2,
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   serverExternalPackages: ['better-sqlite3'],
   async headers() {
     return [
