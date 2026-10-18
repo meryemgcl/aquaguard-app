@@ -1,7 +1,25 @@
 {
-  "name": "aquaguard-v3",
-  "version": "0.1.0",
+  "name": "aquaguard-app",
+  "version": "1.0.0",
+  "description": "AquaGuard: Akıllı Su Kirliliği İzleme, Erken Uyarı ve Karar Destek Platformu",
   "private": true,
+  "author": "Meryem Güçlü",
+  "license": "MIT",
+  "homepage": "https://github.com/meryemgcl/aquaguard-app#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/meryemgcl/aquaguard-app.git"
+  },
+  "keywords": [
+    "water-quality",
+    "environmental-monitoring",
+    "citizen-science",
+    "decision-support",
+    "nextjs",
+    "leaflet",
+    "sqlite",
+    "looker-studio"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build",

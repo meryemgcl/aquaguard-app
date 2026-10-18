@@ -6,6 +6,7 @@
 [![SQLite](https://img.shields.io/badge/SQLite-better--sqlite3-003B57?style=for-the-badge&logo=sqlite)](https://www.sqlite.org/)
 [![Leaflet](https://img.shields.io/badge/Leaflet-GIS_Mapping-199900?style=for-the-badge&logo=leaflet)](https://leafletjs.com/)
 [![Looker Studio](https://img.shields.io/badge/Looker_Studio-Live_BI_Sync-4285F4?style=for-the-badge&logo=google)](https://lookerstudio.google.com/)
+[![CI](https://github.com/meryemgcl/aquaguard-app/actions/workflows/ci.yml/badge.svg)](https://github.com/meryemgcl/aquaguard-app/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/Tests-Passing_100%25-brightgreen?style=for-the-badge)](#-test-ve-kalite-denetimi)
 
 **AquaGuard**, su kirliliği olaylarının vatandaş bilimi (Citizen Science) ile yerinde tespit edilmesini, uzmanlar tarafından teknik ve analitik ölçümlerle doğrulanmasını, yöneticiler tarafından resmi müdahale zincirine alınmasını, canlı iş zekası (BI) panolarına aktarılmasını ve kamuya açık şeffaf bir haritada yayımlanmasını sağlayan **uçtan uca bağımsız, yerel çalışan bir çevre karar destek platformudur.**
@@ -22,16 +23,16 @@ AquaGuard, keyfi veri girişlerini ve yetki aşımlarını engellemek için **ka
 flowchart TD
     subgraph Vatandas["👤 Vatandaş (Halk)"]
         A["Olay Yeri Tespiti"] --> B["Fotoğraf + GPS + Açıklama"]
-        B --> C["/ihbar Gönderimi\n(3 Gizlilik Seviyesi)"]
-        C --> D["Takip Kodu Üretimi\n(AG-2026-XXXXX)"]
-        D --> E["/ihbar-takip\n(Zaman Çizelgesi & Durum)"]
+        B --> C["/ihbar Gönderimi (3 Gizlilik Seviyesi)"]
+        C --> D["Takip Kodu Üretimi (AG-2026-XXXXX)"]
+        D --> E["/ihbar-takip (Zaman Çizelgesi & Durum)"]
     end
 
     subgraph Uzman["🔬 Çevre Uzmanı & Yönetici"]
-        C --> F["/kanban\n(Yeni İhbarlar Kuyruğu)"]
+        C --> F["/kanban (Yeni İhbarlar Kuyruğu)"]
         F --> G["Teknik İnceleme & Fotoğraf Doğrulama"]
-        G --> H["Fiziksel/Kimyasal Saha Ölçümü\n(pH, Bulanıklık, Çözünmüş O₂, Sıcaklık)"]
-        H --> I["Risk Sınıflandırması\n(Düşük / Orta / Yüksek / Kritik)"]
+        G --> H["Fiziksel/Kimyasal Saha Ölçümü (pH, Bulanıklık, Çözünmüş Oksijen, Sıcaklık)"]
+        H --> I["Risk Sınıflandırması (Düşük / Orta / Yüksek / Kritik)"]
         I --> J["Yönetici Onayına Sevk"]
     end
 
@@ -39,12 +40,14 @@ flowchart TD
         J --> K["Resmi İnceleme & Karar"]
         K --> L["Kamuya Açık Haritada Yayımla ('yayinda')"]
         K --> M["Gerekçeli Red / Kapatma ('reddedildi')"]
-        L --> N["📄 Resmi Olay Tespit Tutanağı\n(A4 Baskı / PDF)"]
+        L --> N["📄 Resmi Olay Tespit Tutanağı (A4 Baskı / PDF)"]
     end
 
     subgraph CanliBI["📊 Canlı İş Zekası (BI)"]
-        C & H & K --> O["Google Sheets Webhook\n(Asenkron Arka Plan Akışı)"]
-        O --> P["Google Looker Studio\n(İlçe Trendleri, Kritik pH Analizi, Canlı KPI)"]
+        C --> O["Google Sheets Webhook (Asenkron Arka Plan Akışı)"]
+        H --> O
+        K --> O
+        O --> P["Google Looker Studio (İlçe Trendleri, Kritik pH Analizi, Canlı KPI)"]
     end
 
     subgraph Kamu["🌐 Şeffaf Kamu & Kurum Katmanı"]
@@ -55,8 +58,9 @@ flowchart TD
     end
 
     subgraph Radar["🚨 Algoritmik Erken Uyarı"]
-        L & J --> U["/radar (Kümelenme Motoru)"]
-        U --> V["15 km & 48 Saat Anomali Alarmı\n(Olası Kaynak Deşarjı Tespiti)"]
+        L --> U["/radar (Kümelenme Motoru)"]
+        J --> U
+        U --> V["15 km & 48 Saat Anomali Alarmı (Olası Kaynak Deşarjı Tespiti)"]
     end
 ```
 

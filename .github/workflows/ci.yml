@@ -1,0 +1,52 @@
+name: AquaGuard CI
+
+on:
+  push:
+    branches: [ main, meryemgcl-aquaguard-project-audit ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    name: Lint, Test & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Code Quality & Lint
+        run: npm run lint
+
+      - name: Strict Typecheck
+        run: npm run typecheck
+
+      - name: Smoke Checks
+        run: npm run smoke
+
+      - name: Unit Tests (Measurements, Clustering, Open Data, Workflow, Media)
+        run: |
+          npm run test:measurements
+          npm run test:clustering
+          npm run test:open-data
+          npm run test:workflow
+          npm run test:media
+
+      - name: Next.js Production Build
+        run: npm run build
+        env:
+          JWT_SECRET: "ci-dummy-jwt-secret-for-static-build-verification-only-32char"
