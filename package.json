@@ -35,6 +35,7 @@
     "migrate:media": "tsx scripts/migrate-media-to-disk.ts",
     "test": "npm run lint && npm run typecheck && npm run smoke && npm run test:measurements && npm run test:clustering && npm run test:open-data && npm run test:workflow && npm run test:media && npm run build",
     "seed:db": "tsx scripts/seed.ts",
+    "seed:demo": "node scripts/seed-demo-data.cjs",
     "clear:db": "tsx scripts/clear-db.ts"
   },
   "dependencies": {

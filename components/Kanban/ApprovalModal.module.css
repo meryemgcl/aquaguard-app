@@ -662,10 +662,6 @@
     margin: 14mm;
   }
 
-  :global(body *) {
-    visibility: hidden !important;
-  }
-
   .backdrop {
     position: static;
     display: block;

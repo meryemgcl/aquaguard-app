@@ -630,18 +630,18 @@
 }
 
 /* ── Leaflet overrides for dark popups ── */
-:global(.leaflet-popup-content-wrapper) {
+.dashboard :global(.leaflet-popup-content-wrapper) {
   background: transparent !important;
   box-shadow: none !important;
   border-radius: 10px !important;
   padding: 0 !important;
 }
 
-:global(.leaflet-popup-content) {
+.dashboard :global(.leaflet-popup-content) {
   margin: 0 !important;
 }
 
-:global(.leaflet-popup-tip) {
+.dashboard :global(.leaflet-popup-tip) {
   background: #111827 !important;
 }
 

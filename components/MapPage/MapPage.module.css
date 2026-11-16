@@ -183,7 +183,7 @@
 }
 
 /* Force Leaflet to fill its container */
-:global(.leaflet-container) {
+.mapContainer :global(.leaflet-container) {
   height: 100% !important;
   width: 100% !important;
   max-width: none !important;
