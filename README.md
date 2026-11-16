@@ -9,6 +9,11 @@
 [![CI](https://github.com/meryemgcl/aquaguard-app/actions/workflows/ci.yml/badge.svg)](https://github.com/meryemgcl/aquaguard-app/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/Tests-Passing_100%25-brightgreen?style=for-the-badge)](#-test-ve-kalite-denetimi)
 
+
+<p align="center">
+  <img src="docs/images/01-dashboard-pano.png" alt="AquaGuard Operasyon Panosu" width="100%" />
+</p>
+
 **AquaGuard**, su kirliliği olaylarının vatandaş bilimi (Citizen Science) ile yerinde tespit edilmesini, uzmanlar tarafından teknik ve analitik ölçümlerle doğrulanmasını, yöneticiler tarafından resmi müdahale zincirine alınmasını, canlı iş zekası (BI) panolarına aktarılmasını ve kamuya açık şeffaf bir haritada yayımlanmasını sağlayan **uçtan uca bağımsız, yerel çalışan bir çevre karar destek platformudur.**
 
 > 🛡️ **Ürün Odak Sınırı:** AquaGuard; nehir, göl, kıyı ve su kaynaklarındaki endüstriyel atık deşarjları, toplu balık ölümleri, kimyasal sızıntılar, evsel kirlilik ve su kalitesi anomali yönetimine odaklanır; hane su tüketimi ya da fatura takibi yapmaz.
@@ -63,6 +68,33 @@ flowchart TD
         U --> V["15 km & 48 Saat Anomali Alarmı (Olası Kaynak Deşarjı Tespiti)"]
     end
 ```
+
+---
+
+## 📸 Ekran Görüntüleri ve Arayüz Galerisi (UI Showcase)
+
+AquaGuard'ın saha ekiplerinden birim amirlerine, çevre uzmanlarından vatandaşa kadar uzanan modüler kullanıcı arayüzü:
+
+| 📊 1. Operasyon Panosu (`/`) | 📱 2. Vatandaş İhbar Bildirimi (`/ihbar`) |
+| :---: | :---: |
+| <img src="docs/images/01-dashboard-pano.png" width="100%" alt="Operasyon Panosu" /> | <img src="docs/images/02-ihbar-bildir.png" width="100%" alt="İhbar Bildir Formu" /> |
+| *Gerçek zamanlı metrikler, açık istasyon uyarıları ve operasyon kuyruğu.* | *GPS tabanlı harita seçimi, fotoğraf yükleme ve gizlilik seviyesi.* |
+
+| 🔍 3. İhbar Takip (`/ihbar-takip`) | 📋 4. Operasyon & Doğrulama Masası (`/kanban`) |
+| :---: | :---: |
+| <img src="docs/images/03-ihbar-takip.png" width="100%" alt="İhbar Takip Zaman Çizelgesi" /> | <img src="docs/images/04-kanban-operasyon.png" width="100%" alt="Kanban Doğrulama Masası" /> |
+| *AG-2026 takip koduyla anlık 5 aşamalı onay zaman çizelgesi.* | *Sürükle-bırak doğrulama süreci, AI risk analizi ve resmi tutanak.* |
+
+| 🗺️ 5. Kirlilik Haritası (`/harita`) | 🚨 6. Kümelenme Radarı (`/radar`) |
+| :---: | :---: |
+| <img src="docs/images/05-kirlilik-haritasi.png" width="100%" alt="CBS Kirlilik Haritası" /> | <img src="docs/images/06-kumelenme-radari.png" width="100%" alt="Kümelenme Radarı" /> |
+| *Türkiye çapında istasyonlar, kategori filtreleri ve Leaflet kümeleme.* | *15 km & 48 saat anomali ve endüstriyel deşarj erken uyarısı.* |
+
+| 📱 7. Saha İnceleme Modu (`/saha`) | 👥 8. Kullanıcı & Rol Yönetimi (`/kullanicilar`) |
+| :---: | :---: |
+| <img src="docs/images/07-saha-inceleme.png" width="100%" alt="Saha İnceleme Tablet Modu" /> | <img src="docs/images/08-kullanici-yonetimi.png" width="100%" alt="Kullanıcı Yönetimi" /> |
+| *İnternetsiz çalışan çevrimdışı tablet modu ve numune girişi.* | *Rol tabanlı erişim kontrolü (RBAC & SoD) ve kullanıcı onayları.* |
+
 
 ---
 
@@ -179,6 +211,7 @@ AquaGuard sisteminde 4 temel rol tanımlıdır:
 3. **Veritabanını Başlatın:**
    ```powershell
    npm run seed:db
+npm run seed:demo
    ```
 
 4. **Geliştirme Sunucusunu Başlatın:**
